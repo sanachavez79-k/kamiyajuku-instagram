@@ -163,77 +163,113 @@ WEEKLY_CONTENT_POOL = {
 }
 
 def load_config_from_sheet(day_key="LUNES"):
-    """投稿アイデア管理シート.csv から READY な行を読み込む（存在する場合）"""
-    import csv
+    """
+    投稿アイデア管理シート.xlsx の該当曜日タブ（月曜_JLPT文法 / 水曜_日常会話 / 金曜_日本留学・ビザ）
+    からステータスが【READY】になっている最新の行を読み込む
+    """
     candidates = [
-        BASE_DIR / "投稿アイデア管理シート.csv",
-        BASE_DIR.parent / "投稿アイデア管理シート.csv",
-        Path("/Users/sanakamiya/Library/CloudStorage/GoogleDrive-kamiyajuku.japones@gmail.com/マイドライブ/インスタグラム/投稿アイデア管理シート.csv")
+        BASE_DIR / "投稿アイデア管理シート.xlsx",
+        BASE_DIR.parent / "投稿アイデア管理シート.xlsx",
+        Path("/Users/sanakamiya/Library/CloudStorage/GoogleDrive-kamiyajuku.japones@gmail.com/マイドライブ/インスタグラム/投稿アイデア管理シート.xlsx")
     ]
-    sheet_path = None
+    excel_path = None
     for p in candidates:
         if p.exists():
-            sheet_path = p
+            excel_path = p
             break
 
-    if not sheet_path:
+    if not excel_path:
         return None
 
-    day_kanji_map = {"LUNES": "月曜", "MIERCOLES": "水曜", "VIERNES": "金曜"}
-    target_kanji = day_kanji_map.get(day_key, "月曜")
+    tab_map = {
+        "LUNES": "月曜_JLPT文法",
+        "MIERCOLES": "水曜_日常会話",
+        "VIERNES": "金曜_日本留学・ビザ"
+    }
+    target_sheet_name = tab_map.get(day_key, "月曜_JLPT文法")
 
     try:
-        with open(sheet_path, "r", encoding="utf-8-sig") as f:
-            reader = csv.DictReader(f)
-            for row in reader:
-                if row.get("曜日") == target_kanji and row.get("ステータス", "").upper() == "READY":
-                    # スタイル設定
-                    if day_key == "LUNES":
-                        bg_primary, brand_deep, accent_main, accent_light, photo = "#EEF4EA", "#1B5E20", "#E8822A", "#DCEBD6", PHOTO_MONDAY
-                        tag_text = "JLPT N5 / N4 GRAMÁTICA ⛩️"
-                        h_left = {"char": "は", "color": "#E8822A", "desc": "Tema Principal"}
-                        h_right = {"char": "が", "color": "#1B5E20", "desc": "Sujeto / Clima"}
-                    elif day_key == "MIERCOLES":
-                        bg_primary, brand_deep, accent_main, accent_light, photo = "#FFFBEB", "#B45309", "#D97706", "#FEF3C7", PHOTO_WEDNESDAY
-                        tag_text = "JAPONÉS REAL 🇯🇵"
-                        h_left = {"char": "だいじょうぶ", "color": "#D97706", "desc": "¿OK o Rechazo?"}
-                        h_right = {"char": "大丈夫", "color": "#B45309", "desc": "4 Significados"}
-                    else:
-                        bg_primary, brand_deep, accent_main, accent_light, photo = "#F0FDF4", "#15803D", "#2E7D32", "#DCFCE7", PHOTO_FRIDAY
-                        tag_text = "ESTUDIAR EN JAPÓN ✈️"
-                        h_left = {"char": "VISA", "color": "#2E7D32", "desc": "Trámites y Plazos"}
-                        h_right = {"char": "CoE", "color": "#15803D", "desc": "5-6 Meses Antes"}
+        import openpyxl
+        wb = openpyxl.load_workbook(excel_path, data_only=True)
+        if target_sheet_name not in wb.sheetnames:
+            return None
 
-                    return {
-                        "pillar": f"{row.get('テーマ_日本語', '')}",
-                        "tag_text": tag_text,
-                        "bg_primary": bg_primary, "brand_deep": brand_deep, "accent_main": accent_main, "accent_light": accent_light,
-                        "student_photo": photo, "photo_position": "center 20%",
-                        "title_html": row.get("タイトル_スペイン語", ""),
-                        "subtitle": row.get("サブタイトル_スペイン語", ""),
-                        "hero_left": h_left, "hero_right": h_right,
-                        "rule1": {
-                            "badge": row.get("ルール1_見出し", ""), "badge_bg": accent_main,
-                            "title": row.get("ルール1_見出し", ""), "desc": row.get("ルール1_説明", ""),
-                            "ja": row.get("ルール1_例文_日", ""), "es": row.get("ルール1_例文_西", "")
-                        },
-                        "rule2": {
-                            "badge": row.get("ルール2_見出し", ""), "badge_bg": brand_deep,
-                            "title": row.get("ルール2_見出し", ""), "desc": row.get("ルール2_説明", ""),
-                            "ja": row.get("ルール2_例文_日", ""), "es": row.get("ルール2_例文_西", "")
-                        },
-                        "q1_ja": row.get("クイズ1_問題", ""), "q1_es": row.get("クイズ1_西", ""),
-                        "q2_ja": row.get("クイズ2_問題", ""), "q2_es": row.get("クイズ2_西", ""),
-                        "a1_text": f"Respuesta: {row.get('クイズ1_正解', '')}", "a1_desc": row.get("クイズ1_解説", ""),
-                        "a2_text": f"Respuesta: {row.get('クイズ2_正解', '')}", "a2_desc": row.get("クイズ2_解説", ""),
-                        "cheat_t1": "💡 Punto Clave 1", "cheat_b1": f"➔ {row.get('チートシート1', '')}",
-                        "cheat_t2": "💡 Punto Clave 2", "cheat_b2": f"➔ {row.get('チートシート2', '')}",
-                        "dm_keyword": row.get("DMキーワード", "JLPT"),
-                        "dm_gift": f"<b>{row.get('DMプレゼント', '')}</b>"
-                    }
+        ws = wb[target_sheet_name]
+        ready_row = None
+        # 5行目からデータを探索（A: No, B: ステータス, C: テーマ, D: 補足メモ）
+        for r in range(5, ws.max_row + 1):
+            status = str(ws.cell(row=r, column=2).value or "").strip().upper()
+            theme = str(ws.cell(row=r, column=3).value or "").strip()
+            memo = str(ws.cell(row=r, column=4).value or "").strip()
+            if status == "READY" and theme:
+                ready_row = {"theme": theme, "memo": memo, "row_idx": r}
+                break
+
+        if not ready_row:
+            return None
+
+        theme = ready_row["theme"]
+        memo = ready_row["memo"]
+
+        # デフォルトのスタイル設定
+        if day_key == "LUNES":
+            bg_primary, brand_deep, accent_main, accent_light, photo = "#EEF4EA", "#1B5E20", "#E8822A", "#DCEBD6", PHOTO_MONDAY
+            tag_text = "JLPT N5 / N4 GRAMÁTICA ⛩️"
+            dm_kw = "JLPT"
+            dm_gift = "<b>Guía PDF de Partículas N5/N4</b> + <b>Test de Nivel</b>"
+        elif day_key == "MIERCOLES":
+            bg_primary, brand_deep, accent_main, accent_light, photo = "#FFFBEB", "#B45309", "#D97706", "#FEF3C7", PHOTO_WEDNESDAY
+            tag_text = "JAPONÉS REAL 🇯🇵"
+            dm_kw = "JAPONES"
+            dm_gift = "<b>Guía de Expresiones Clave para Viajar a Japón</b> + <b>Audio</b>"
+        else:
+            bg_primary, brand_deep, accent_main, accent_light, photo = "#F0FDF4", "#15803D", "#2E7D32", "#DCFCE7", PHOTO_FRIDAY
+            tag_text = "ESTUDIAR EN JAPÓN ✈️"
+            dm_kw = "VISA"
+            dm_gift = "<b>Guía Completa para Estudiar en Japón desde España</b> + <b>Asesoría</b>"
+
+        # 既存プールの中にマッチするテーマがあればそれをベースに詳細を展開
+        pool = WEEKLY_CONTENT_POOL.get(day_key, [])
+        for item in pool:
+            if any(k in item.get("pillar", "") for k in theme.split()) or any(k in theme for k in ["は", "が", "に", "で", "ため", "よう", "だいじょうぶ", "すみません", "ビザ", "生活費"]):
+                # マッチしたテーマを返却
+                res = dict(item)
+                res["pillar"] = f"{theme}"
+                return res
+
+        # 新規テーマの場合：自動構成を組み立て
+        return {
+            "pillar": f"{theme}",
+            "tag_text": tag_text,
+            "bg_primary": bg_primary, "brand_deep": brand_deep, "accent_main": accent_main, "accent_light": accent_light,
+            "student_photo": photo, "photo_position": "center 20%",
+            "title_html": f'Aprende <span style="color: {accent_main}; text-decoration: underline;">{theme}</span> en japonés 🇯🇵🧠',
+            "subtitle": f"Consejos y reglas esenciales: {memo}" if memo else "Aprende la regla definitiva en 30 segundos con Kamiya Juku.",
+            "hero_left": {"char": "重要", "color": accent_main, "desc": "Regla Clave"},
+            "hero_right": {"char": "実践", "color": brand_deep, "desc": "Ejemplo Real"},
+            "rule1": {
+                "badge": "Punto 1", "badge_bg": accent_main,
+                "title": "Regla y Uso Principal", "desc": f"Explicación para {theme}",
+                "ja": f"{theme}の 使い方", "es": f"Uso correcto de {theme} en japonés natural."
+            },
+            "rule2": {
+                "badge": "Punto 2", "badge_bg": brand_deep,
+                "title": "Consejo y Caso Especial", "desc": memo if memo else "Ten cuidado con los errores más comunes.",
+                "ja": f"{memo}" if memo else "自然な 日本語の 表現", "es": "Expresión natural utilizada por nativos."
+            },
+            "q1_ja": f"¿Cómo se usa {theme}?", "q1_es": "Elige la opción más natural en una conversación.",
+            "q2_ja": "¿En qué situación es más adecuado?", "q2_es": "(a) Situación formal &nbsp;&nbsp; (b) Situación informal",
+            "a1_text": "Respuesta: ¡Opción correcta!", "a1_desc": f"¡Porque se adapta a la regla de {theme}!",
+            "a2_text": "Respuesta: (a) y (b)", "a2_desc": "¡Según el grado de cortesía y contexto!",
+            "cheat_t1": f"💡 Regla de oro para {theme}", "cheat_b1": f"➔ {memo}" if memo else "➔ Práctica activa y lectura diaria.",
+            "cheat_t2": "💼 ¿Quieres practicar con nativos?", "cheat_b2": "➔ Clases online en grupos reducidos de Kamiya Juku.",
+            "dm_keyword": dm_kw,
+            "dm_gift": dm_gift
+        }
+
     except Exception as e:
-        print(f"⚠️ スプレッドシート読み込みエラー: {e}")
-    return None
+        print(f"⚠️ Excelシート読み込みエラー: {e}")
+        return None
 
 def get_current_week_config(day_key="LUNES", target_date=None):
     """
