@@ -1,0 +1,8 @@
+.env
+__pycache__/
+*.pyc
+generated_assets/
+temp_*.html
+approved_schedule.json
+scheduler.log
+.DS_Store

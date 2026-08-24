@@ -1,0 +1,640 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700;800;900&family=Noto+Sans+JP:wght@400;700;900&display=swap');
+
+  :root {
+    /* 神谷塾 公式パンフレット準拠 カラーパレット */
+    --bg-primary: #EEF4EA;     /* パンフレット表紙の抹茶・セージグリーン背景 */
+    --bg-card: #FFFFFF;        /* クリーンホワイトカード */
+    --brand-green-deep: #2A5A35; /* 公式ディープグリーン（ロゴ・大見出し） */
+    --brand-green-mid: #5B8C5A;  /* 中間グリーン（タグ・境界線） */
+    --brand-green-light: #DCEBD6;/* 背景アクセント・チェック用薄緑 */
+    --accent-orange: #E8822A;   /* パンフレットのアクセントオレンジ（フック・CTA） */
+    --accent-yellow: #F9B233;   /* 山吹色イエロー（バッジ・強調） */
+    --text-main: #1C281D;       /* 濃いチャコールグリーン */
+    --text-muted: #566958;      /* サブテキスト用 */
+    --card-shadow: 0 16px 36px rgba(42, 90, 53, 0.08);
+    --border-radius: 32px;
+  }
+
+  * {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+  }
+
+  body {
+    background-color: #222;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 40px;
+    padding: 40px;
+    font-family: 'Montserrat', 'Noto Sans JP', sans-serif;
+  }
+
+  /* One-Click Export Toolbar */
+  .export-toolbar {
+    position: sticky;
+    top: 20px;
+    z-index: 9999;
+    background: #1B2A4A;
+    color: #FFF;
+    padding: 16px 32px;
+    border-radius: 50px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    font-size: 18px;
+    font-weight: 700;
+  }
+
+  .export-btn {
+    background: #E8822A;
+    color: #FFF;
+    border: none;
+    padding: 12px 28px;
+    border-radius: 30px;
+    font-size: 16px;
+    font-weight: 800;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    box-shadow: 0 4px 12px rgba(232, 130, 42, 0.4);
+  }
+
+  .export-btn:hover {
+    background: #FF9B42;
+    transform: translateY(-2px);
+  }
+
+  .export-btn:disabled {
+    background: #666;
+    cursor: not-allowed;
+  }
+
+  /* 1080 x 1350 (4:5 Instagram Portrait) */
+  .slide {
+    width: 1080px;
+    height: 1350px;
+    background-color: var(--bg-primary);
+    position: relative;
+    padding: 80px 70px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    overflow: hidden;
+  }
+
+  /* Header */
+  .slide-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 2px solid rgba(42, 90, 53, 0.1);
+    padding-bottom: 24px;
+  }
+
+    .logo-badge {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-weight: 900;
+      font-size: 26px;
+      letter-spacing: -0.5px;
+      color: var(--brand-green-deep);
+    }
+    .logo-badge img {
+      width: 44px;
+      height: 44px;
+      object-fit: contain;
+    }
+
+  .slide-counter {
+    background: var(--brand-green-light);
+    padding: 8px 22px;
+    border-radius: 20px;
+    font-size: 24px;
+    font-weight: 800;
+    color: var(--brand-green-deep);
+  }
+
+  /* Footer */
+  .slide-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-top: 2px solid rgba(42, 90, 53, 0.1);
+    padding-top: 24px;
+    font-size: 24px;
+    font-weight: 700;
+    color: var(--text-muted);
+  }
+
+  .swipe-cta {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    color: var(--accent-orange);
+    font-weight: 800;
+    font-size: 26px;
+  }
+
+  /* Card Component */
+  .content-card {
+    background: var(--bg-card);
+    border-radius: var(--border-radius);
+    padding: 48px;
+    box-shadow: var(--card-shadow);
+    border: 2px solid rgba(42, 90, 53, 0.08);
+  }
+
+  /* Slide 1: Cover */
+  .slide-cover {
+    background: radial-gradient(circle at top right, #FFFFFF 0%, var(--bg-primary) 75%);
+  }
+
+  .tag-chip {
+    display: inline-block;
+    background: var(--accent-orange);
+    color: #FFF;
+    font-size: 24px;
+    font-weight: 800;
+    padding: 10px 24px;
+    border-radius: 12px;
+    margin-bottom: 24px;
+    letter-spacing: 1px;
+  }
+
+  .cover-title {
+    font-size: 64px;
+    font-weight: 900;
+    line-height: 1.2;
+    color: var(--brand-green-deep);
+    margin-bottom: 24px;
+  }
+
+  .cover-title .highlight {
+    color: var(--accent-orange);
+    text-decoration: underline;
+    text-decoration-thickness: 8px;
+    text-underline-offset: 8px;
+  }
+
+  .cover-subtitle {
+    font-size: 32px;
+    font-weight: 700;
+    color: var(--text-muted);
+    line-height: 1.4;
+  }
+
+  .cover-hero-box {
+    margin-top: 40px;
+    background: #FFF;
+    border-radius: var(--border-radius);
+    padding: 50px;
+    display: flex;
+    justify-content: space-around;
+    align-items: center;
+    box-shadow: var(--card-shadow);
+    border: 2px solid var(--brand-green-light);
+  }
+
+  .hero-item {
+    text-align: center;
+  }
+
+  .hero-char {
+    font-size: 110px;
+    font-weight: 900;
+    line-height: 1;
+    margin-bottom: 10px;
+  }
+
+  .hero-vs {
+    font-size: 36px;
+    font-weight: 900;
+    color: var(--accent-orange);
+  }
+
+  /* Slide 2: Rules */
+  .rule-section {
+    display: flex;
+    flex-direction: column;
+    gap: 32px;
+  }
+
+  .rule-card {
+    background: #FFF;
+    border-radius: 28px;
+    padding: 36px 44px;
+    box-shadow: var(--card-shadow);
+    border-left: 14px solid var(--accent-orange);
+  }
+
+  .rule-card.rule-de {
+    border-left-color: var(--brand-green-deep);
+  }
+
+  .rule-header {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin-bottom: 16px;
+  }
+
+  .rule-badge {
+    font-size: 32px;
+    font-weight: 900;
+    color: #FFF;
+    background: var(--accent-orange);
+    padding: 4px 18px;
+    border-radius: 12px;
+  }
+
+  .rule-de .rule-badge {
+    background: var(--brand-green-deep);
+  }
+
+  .rule-title {
+    font-size: 32px;
+    font-weight: 800;
+    color: var(--text-main);
+  }
+
+  .example-box {
+    background: #F6FAF4;
+    border-radius: 18px;
+    padding: 20px 24px;
+    margin-top: 16px;
+    border: 1px solid var(--brand-green-light);
+  }
+
+  .example-ja {
+    font-size: 36px;
+    font-weight: 700;
+    color: var(--brand-green-deep);
+    margin-bottom: 6px;
+  }
+
+  .example-es {
+    font-size: 24px;
+    font-weight: 500;
+    color: var(--text-muted);
+  }
+
+  /* Slide 3: Quiz */
+  .quiz-card {
+    background: #FFF;
+    border-radius: 28px;
+    padding: 36px;
+    margin-bottom: 24px;
+    box-shadow: var(--card-shadow);
+    border: 1px solid var(--brand-green-light);
+  }
+
+  .quiz-q {
+    font-size: 30px;
+    font-weight: 800;
+    color: var(--brand-green-deep);
+    margin-bottom: 16px;
+  }
+
+  .quiz-ans {
+    background: var(--brand-green-light);
+    color: var(--brand-green-deep);
+    padding: 16px 24px;
+    border-radius: 16px;
+    font-size: 26px;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  /* Slide 4: CTA / Brand */
+  .slide-cta {
+    background: linear-gradient(145deg, #1C3D24 0%, #2A5A35 100%);
+    color: #FFF;
+  }
+
+  .slide-cta .slide-header {
+    border-bottom: 2px solid rgba(255,255,255,0.15);
+  }
+
+  .slide-cta .brand-badge {
+    color: #FFF;
+  }
+
+  .slide-cta .brand-badge span {
+    color: var(--accent-yellow);
+  }
+
+  .slide-cta .slide-counter {
+    background: rgba(255,255,255,0.15);
+    color: #FFF;
+  }
+
+  .cta-box {
+    text-align: center;
+    padding: 60px 40px;
+  }
+
+  .cta-heading {
+    font-size: 56px;
+    font-weight: 900;
+    line-height: 1.2;
+    margin-bottom: 30px;
+    color: #FFF;
+  }
+
+  .cta-dm-bubble {
+    background: #FFF;
+    color: var(--brand-green-deep);
+    padding: 32px 50px;
+    border-radius: 30px;
+    margin: 40px auto;
+    display: inline-block;
+    box-shadow: 0 20px 50px rgba(0,0,0,0.25);
+  }
+
+  .cta-dm-bubble .keyword {
+    font-size: 64px;
+    font-weight: 900;
+    color: var(--accent-orange);
+    letter-spacing: 2px;
+  }
+
+  .cta-benefits {
+    text-align: left;
+    margin: 30px auto;
+    max-width: 800px;
+    font-size: 26px;
+    line-height: 2;
+  }
+
+  /* Ruby / Furigana Styling */
+  ruby {
+    ruby-position: over;
+  }
+  rt {
+    font-size: 0.5em;
+    color: var(--text-muted);
+    font-weight: 700;
+    line-height: 1;
+    transform: translateY(-2px);
+  }
+  .example-ja rt {
+    color: var(--brand-green-mid);
+    font-size: 0.45em;
+  }
+</style>
+</head>
+<body>
+
+  <!-- One-Click Export Floating Bar -->
+  <div class="export-toolbar">
+    <span>⛩️ 神谷塾 カルーセル画像プレビュー (全6枚)</span>
+    <button class="export-btn" id="export-btn" onclick="exportAllSlides()">📸 全スライドを一括JPG保存 (1080x1350)</button>
+    <span id="export-status" style="font-size: 15px; color: #CBD5E1;"></span>
+  </div>
+
+  <!-- Slide 1: Cover (1/6) -->
+  <div class="slide slide-cover" id="slide-1">
+    <div class="slide-header">
+      <div class="brand-badge">⛩️ KAMIYA JUKU <span><ruby>神谷塾<rt>かみやじゅく</rt></ruby></span></div>
+      <div class="slide-counter">1 / 6</div>
+    </div>
+    
+    <div class="content">
+      <div class="tag-chip">JLPT N5 / N4 GRAMÁTICA</div>
+      <h1 class="cover-title">¿Dices "Tokyo <span class="highlight">NI</span>" o "Tokyo <span class="highlight">DE</span>"? 🇯🇵❌</h1>
+      <p class="cover-subtitle">El error con las partículas「に」y「で」que el 90% comete en el JLPT.</p>
+
+      <div class="cover-hero-box">
+        <div class="hero-item">
+          <div class="hero-char" style="color: var(--accent-orange);">に</div>
+          <div style="font-size: 26px; font-weight: 800; color: var(--text-muted);">Estancia / Destino</div>
+        </div>
+        <div class="hero-vs">VS</div>
+        <div class="hero-item">
+          <div class="hero-char" style="color: var(--brand-green-deep);">で</div>
+          <div style="font-size: 26px; font-weight: 800; color: var(--text-muted);">Acción Activa</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="slide-footer">
+      <div>@japones_kamiyajuku</div>
+      <div class="swipe-cta">Desliza para ver la regla 👉</div>
+    </div>
+  </div>
+
+  <!-- Slide 2: Rules (2/6) -->
+  <div class="slide" id="slide-2">
+    <div class="slide-header">
+      <div class="brand-badge">⛩️ KAMIYA JUKU <span><ruby>神谷塾<rt>かみやじゅく</rt></ruby></span></div>
+      <div class="slide-counter">2 / 6</div>
+    </div>
+
+    <div class="rule-section">
+      <div class="rule-card">
+        <div class="rule-header">
+          <div class="rule-badge">に (NI)</div>
+          <div class="rule-title">Lugar de Estancia / Existencia</div>
+        </div>
+        <p style="font-size: 24px; color: var(--text-muted);">Indica DÓNDE está una persona/objeto o a dónde vas.</p>
+        <div class="example-box">
+          <div class="example-ja"><ruby>東京<rt>とうきょう</rt></ruby><span style="color: var(--accent-orange); font-weight:900;">に</span><ruby>住<rt>す</rt></ruby>んでいます。</div>
+          <div class="example-es">Vivo EN Tokio. (Verbo de permanencia)</div>
+        </div>
+      </div>
+
+      <div class="rule-card rule-de">
+        <div class="rule-header">
+          <div class="rule-badge">で (DE)</div>
+          <div class="rule-title">Lugar de Acción Activa</div>
+        </div>
+        <p style="font-size: 24px; color: var(--text-muted);">Indica DÓNDE ocurre una actividad o evento dinámico.</p>
+        <div class="example-box">
+          <div class="example-ja">レストラン<span style="color: var(--brand-green-deep); font-weight:900;">で</span><ruby>食<rt>た</rt></ruby>べます。</div>
+          <div class="example-es">Como EN un restaurante. (Verbo de acción)</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="slide-footer">
+      <div>@japones_kamiyajuku</div>
+      <div class="swipe-cta">¡Ponte a prueba en el quiz! 👉</div>
+    </div>
+  </div>
+
+  <!-- Slide 3: Quiz QUESTION (3/6) -->
+  <div class="slide" id="slide-3">
+    <div class="slide-header">
+      <div class="brand-badge">⛩️ KAMIYA JUKU <span><ruby>神谷塾<rt>かみやじゅく</rt></ruby></span></div>
+      <div class="slide-counter">3 / 6</div>
+    </div>
+
+    <div class="content">
+      <div class="tag-chip" style="background: var(--brand-green-deep);">PREGUNTAS TIPO JLPT</div>
+      <h2 style="font-size: 40px; color: var(--brand-green-deep); margin-bottom: 24px;">¿Cuál es la partícula correcta? (¿に o で?)</h2>
+      
+      <div class="quiz-card" style="padding: 44px 36px;">
+        <div class="quiz-q" style="font-size: 36px; margin-bottom: 20px;">
+          ❓ <strong>Q1:</strong> <ruby>図書館<rt>としょかん</rt></ruby>（ &nbsp;&nbsp;&nbsp;&nbsp; ）<ruby>本<rt>ほん</rt></ruby>を<ruby>読<rt>よ</rt></ruby>みます。
+        </div>
+        <p style="font-size: 24px; color: var(--text-muted);">Toshokan ( &nbsp; ) hon o yomimasu. <em>(Leo libros en la biblioteca)</em></p>
+      </div>
+
+      <div class="quiz-card" style="padding: 44px 36px;">
+        <div class="quiz-q" style="font-size: 36px; margin-bottom: 20px;">
+          ❓ <strong>Q2:</strong> <ruby>机<rt>つくえ</rt></ruby>の<ruby>上<rt>うえ</rt></ruby>（ &nbsp;&nbsp;&nbsp;&nbsp; ）<ruby>猫<rt>ねこ</rt></ruby>がいます。
+        </div>
+        <p style="font-size: 24px; color: var(--text-muted);">Tsukue no ue ( &nbsp; ) neko ga imasu. <em>(Hay un gato sobre la mesa)</em></p>
+      </div>
+    </div>
+
+    <div class="slide-footer">
+      <div>@japones_kamiyajuku</div>
+      <div class="swipe-cta" style="background: var(--brand-green-light); padding: 10px 20px; border-radius: 16px;">
+        🤔 ¿Tienes tu respuesta? ¡Desliza! 👉
+      </div>
+    </div>
+  </div>
+
+  <!-- Slide 4: Quiz ANSWER & Explanation (4/6) -->
+  <div class="slide" id="slide-4">
+    <div class="slide-header">
+      <div class="brand-badge">⛩️ KAMIYA JUKU <span><ruby>神谷塾<rt>かみやじゅく</rt></ruby></span></div>
+      <div class="slide-counter">4 / 6</div>
+    </div>
+
+    <div class="content">
+      <div class="tag-chip" style="background: var(--accent-orange);">RESPUESTAS & EXPLICACIÓN</div>
+      
+      <div class="quiz-card" style="border-left: 10px solid var(--brand-green-deep);">
+        <div style="font-size: 26px; color: var(--text-muted); margin-bottom: 8px;">Q1: <ruby>図書館<rt>としょかん</rt></ruby>（ <strong>で</strong> ）<ruby>本<rt>ほん</rt></ruby>を<ruby>読<rt>よ</rt></ruby>みます。</div>
+        <div class="quiz-ans" style="font-size: 28px;">
+          <span>✅</span>
+          <div><strong>Respuesta: で (DE)</strong><br><small style="font-size:22px; color:#2A5A35;">¡Porque "leer (<ruby>読<rt>よ</rt></ruby>む)" es una <strong>acción activa</strong>!</small></div>
+        </div>
+      </div>
+
+      <div class="quiz-card" style="border-left: 10px solid var(--accent-orange); margin-top: 24px;">
+        <div style="font-size: 26px; color: var(--text-muted); margin-bottom: 8px;">Q2: <ruby>机<rt>つくえ</rt></ruby>の<ruby>上<rt>うえ</rt></ruby>（ <strong>に</strong> ）<ruby>猫<rt>ねこ</rt></ruby>がいます。</div>
+        <div class="quiz-ans" style="font-size: 28px; background: #FFF4E8; color: #C05621;">
+          <span>✅</span>
+          <div><strong style="color: #C05621;">Respuesta: に (NI)</strong><br><small style="font-size:22px; color:#7B341E;">¡Porque "estar/haber (いる)" indica <strong>existencia/estancia</strong>!</small></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="slide-footer">
+      <div>@japones_kamiyajuku</div>
+      <div class="swipe-cta">Resumen rápido para el examen 👉</div>
+    </div>
+  </div>
+
+  <!-- Slide 5: Summary Tips (5/6) -->
+  <div class="slide" id="slide-5">
+    <div class="slide-header">
+      <div class="brand-badge">⛩️ KAMIYA JUKU <span><ruby>神谷塾<rt>かみやじゅく</rt></ruby></span></div>
+      <div class="slide-counter">5 / 6</div>
+    </div>
+
+    <div class="content-card" style="padding: 60px;">
+      <h2 style="font-size: 44px; color: var(--brand-green-deep); margin-bottom: 30px;">🧠 Truco Rápido para el Examen:</h2>
+      
+      <div style="display:flex; flex-direction:column; gap: 30px; font-size: 28px;">
+        <div style="background:#FFF9F2; padding:28px; border-radius:20px; border-left:10px solid var(--accent-orange);">
+          <strong>¿Hay movimiento / acción activa?</strong><br>
+          ➔ <ruby>食<rt>た</rt></ruby>べる, <ruby>勉強<rt>べんきょう</rt></ruby>する, <ruby>買<rt>か</rt></ruby>う = <strong style="color:var(--accent-orange); font-size:38px;">で (DE)</strong>
+        </div>
+
+        <div style="background:#F4FAF2; padding:28px; border-radius:20px; border-left:10px solid var(--brand-green-deep);">
+          <strong>¿Es estancia, estar o destino?</strong><br>
+          ➔ <ruby>住<rt>す</rt></ruby>む, いる, ある, <ruby>行<rt>い</rt></ruby>く = <strong style="color:var(--brand-green-deep); font-size:38px;">に (NI)</strong>
+        </div>
+      </div>
+    </div>
+
+    <div class="slide-footer">
+      <div>@japones_kamiyajuku</div>
+      <div class="swipe-cta">¡Regalo exclusivo en el siguiente! 👉</div>
+    </div>
+  </div>
+
+  <!-- Slide 6: CTA / Kamiyajuku (6/6) -->
+  <div class="slide slide-cta" id="slide-6">
+    <div class="slide-header">
+      <div class="brand-badge">⛩️ KAMIYA JUKU <span><ruby>神谷塾<rt>かみやじゅく</rt></ruby></span></div>
+      <div class="slide-counter">6 / 6</div>
+    </div>
+
+    <div class="cta-box">
+      <h2 class="cta-heading">¿Quieres aprobar el JLPT este año? 🎓🇯🇵</h2>
+      <p style="font-size: 26px; color: #E2E8F0;">Aprende japonés real con clases online en vivo.</p>
+
+      <div class="cta-dm-bubble">
+        <p style="font-size: 22px; font-weight:700; color: var(--text-muted);">ENVÍA UN DM CON LA PALABRA</p>
+        <div class="keyword">"JLPT"</div>
+      </div>
+
+      <div class="cta-benefits">
+        <div>🎁 <strong>Guía PDF gratuita</strong> de partículas difíciles</div>
+        <div>📊 <strong>Test de nivel</strong> personalizado sin costo</div>
+        <div>⛩️ <strong>Asesoría</strong> para estudiar en Japón</div>
+      </div>
+    </div>
+
+    <div class="slide-footer" style="border-top: 2px solid rgba(255,255,255,0.15); color: #CBD5E1;">
+      <div>@japones_kamiyajuku</div>
+      <div style="color: var(--accent-yellow); font-weight:800;">¡Síguenos y guarda este post! 🔖</div>
+    </div>
+  </div>
+
+  <!-- HTML2Canvas CDN for Instant One-Click Export -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+  <script>
+    async function exportAllSlides() {
+      const btn = document.getElementById('export-btn');
+      const status = document.getElementById('export-status');
+      btn.disabled = true;
+      btn.innerText = '⏳ 書き出し中...';
+
+      const slides = document.querySelectorAll('.slide');
+      for (let i = 0; i < slides.length; i++) {
+        const slide = slides[i];
+        status.innerText = `スライド ${i + 1} / ${slides.length} を処理中...`;
+
+        const canvas = await html2canvas(slide, {
+          scale: 2, // 高解像度 2160 x 2700 でレンダリング
+          useCORS: true,
+          backgroundColor: null,
+          logging: false
+        });
+
+        // JPGとしてダウンロードリンクを生成
+        const link = document.createElement('a');
+        link.download = `kamiyajuku_slide_${i + 1}.jpg`;
+        link.href = canvas.toDataURL('image/jpeg', 0.95);
+        link.click();
+        
+        // ブラウザの同時ダウンロード制限を避けるため少し待機
+        await new Promise(resolve => setTimeout(resolve, 300));
+      }
+
+      btn.disabled = false;
+      btn.innerText = '✅ 書き出し完了！';
+      status.innerText = '全6枚のJPG画像をダウンロードしました。';
+      setTimeout(() => {
+        btn.innerText = '📸 全スライドを一括JPG保存 (1080x1350)';
+      }, 4000);
+    }
+  </script>
+</body>
+</html>

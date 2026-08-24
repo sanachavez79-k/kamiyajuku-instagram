@@ -1,0 +1,611 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Guía de Estudio JLPT - Kamiya Juku</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800;900&family=Noto+Sans+JP:wght@400;500;700;900&display=swap');
+
+    @page {
+      size: A4 portrait;
+      margin: 0;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Plus Jakarta Sans', 'Noto Sans JP', sans-serif;
+      background-color: #F0F4EC;
+      color: #2D3748;
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
+    }
+
+    .page {
+      width: 210mm;
+      height: 297mm;
+      padding: 20mm 20mm;
+      background-color: #FFFFFF;
+      position: relative;
+      page-break-after: always;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      overflow: hidden;
+    }
+
+    /* ルビ（振り仮名）の美しい配置 */
+    ruby {
+      ruby-position: over;
+      font-family: 'Noto Sans JP', sans-serif;
+    }
+    rt {
+      font-size: 0.6em;
+      color: #E8822A;
+      font-weight: 700;
+      transform: translateY(-2px);
+    }
+
+    /* ヘッダー＆フッター */
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 2px solid #EEF4EA;
+      padding-bottom: 12px;
+      margin-bottom: 16px;
+    }
+    .brand-logo {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-weight: 900;
+      font-size: 17px;
+      color: #2A5A35;
+    }
+    .brand-logo img {
+      width: 48px;
+      height: 48px;
+      object-fit: contain;
+      filter: drop-shadow(0 2px 4px rgba(0,0,0,0.1));
+    }
+    .brand-tag {
+      font-size: 11px;
+      font-weight: 700;
+      color: #2A5A35;
+      background-color: #EEF4EA;
+      padding: 5px 12px;
+      border-radius: 14px;
+      letter-spacing: 0.5px;
+    }
+
+    .footer {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-top: 1px solid #E2E8F0;
+      padding-top: 10px;
+      font-size: 11px;
+      color: #718096;
+    }
+    .footer-left {
+      font-weight: 600;
+      color: #2A5A35;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .page-number {
+      font-weight: 700;
+      color: #E8822A;
+    }
+
+    /* タイトルとセクション見出し */
+    h1 {
+      color: #2A5A35;
+      font-size: 28px;
+      font-weight: 800;
+      line-height: 1.25;
+      margin-bottom: 8px;
+    }
+    h2 {
+      color: #2A5A35;
+      font-size: 19px;
+      font-weight: 800;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 12px;
+    }
+    h3 {
+      color: #E8822A;
+      font-size: 14.5px;
+      font-weight: 700;
+      margin-bottom: 6px;
+    }
+
+    p {
+      font-size: 13.5px;
+      line-height: 1.6;
+      color: #4A5568;
+      margin-bottom: 10px;
+    }
+
+    /* カードデザイン */
+    .card {
+      background-color: #FFFFFF;
+      border-radius: 12px;
+      padding: 14px 16px;
+      margin-bottom: 12px;
+      border: 1px solid #E2E8F0;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+    }
+    .card-green {
+      background-color: #EEF4EA;
+      border-left: 5px solid #2A5A35;
+      border-top: none;
+      border-right: none;
+      border-bottom: none;
+    }
+    .card-orange {
+      background-color: #FFF8F0;
+      border-left: 5px solid #E8822A;
+      border-top: none;
+      border-right: none;
+      border-bottom: none;
+    }
+
+    /* 日本語例文ボックス */
+    .jp-box {
+      background: #FFFFFF;
+      border: 1px solid #CBD5E0;
+      border-radius: 8px;
+      padding: 9px 12px;
+      margin: 6px 0;
+      font-size: 14.5px;
+      font-weight: 500;
+      color: #1A202C;
+    }
+    .jp-box .translation {
+      display: block;
+      font-size: 12px;
+      color: #718096;
+      font-weight: 400;
+      margin-top: 3px;
+    }
+
+    .badge {
+      display: inline-block;
+      padding: 2px 7px;
+      border-radius: 5px;
+      font-size: 11px;
+      font-weight: 700;
+      margin-right: 6px;
+    }
+    .badge-ni { background-color: #2A5A35; color: #FFFFFF; }
+    .badge-de { background-color: #E8822A; color: #FFFFFF; }
+
+    /* 表（テーブル） */
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 12px 0;
+      font-size: 13px;
+    }
+    th {
+      background-color: #2A5A35;
+      color: #FFFFFF;
+      padding: 9px 12px;
+      text-align: left;
+      font-weight: 700;
+      border-top-left-radius: 6px;
+      border-top-right-radius: 6px;
+    }
+    td {
+      padding: 9px 12px;
+      border-bottom: 1px solid #E2E8F0;
+      background-color: #FFFFFF;
+    }
+    tr:nth-child(even) td {
+      background-color: #F8FAF7;
+    }
+
+    /* 表紙専用デザイン */
+    .cover-page {
+      background: linear-gradient(145deg, #1A3E23 0%, #2A5A35 60%, #15311C 100%);
+      color: #FFFFFF;
+      padding: 24mm 24mm;
+      justify-content: space-between;
+    }
+    .cover-header-brand {
+      display: flex;
+      align-items: center;
+      gap: 18px;
+      margin-bottom: 22px;
+    }
+    .cover-logo-img {
+      width: 88px;
+      height: 88px;
+      object-fit: contain;
+      filter: drop-shadow(0 4px 10px rgba(0,0,0,0.3));
+    }
+    .cover-brand-title {
+      font-size: 26px;
+      font-weight: 900;
+      letter-spacing: 0.5px;
+      color: #FFFFFF;
+    }
+    .cover-brand-sub {
+      font-size: 13px;
+      color: #F9B233;
+      font-weight: 600;
+      margin-top: 2px;
+    }
+
+    .cover-badge {
+      background-color: #E8822A;
+      color: #FFFFFF;
+      padding: 6px 16px;
+      border-radius: 20px;
+      font-weight: 800;
+      font-size: 12px;
+      letter-spacing: 1px;
+      display: inline-block;
+      margin-bottom: 14px;
+      box-shadow: 0 2px 6px rgba(232, 130, 42, 0.4);
+    }
+    .cover-title {
+      font-size: 38px;
+      font-weight: 900;
+      color: #FFFFFF;
+      line-height: 1.15;
+      margin-bottom: 14px;
+    }
+    .cover-title span {
+      color: #F9B233;
+    }
+    .cover-subtitle {
+      font-size: 15px;
+      color: #EEF4EA;
+      line-height: 1.5;
+      font-weight: 400;
+      margin-bottom: 22px;
+    }
+    .cover-box {
+      background: rgba(255, 255, 255, 0.1);
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      border-radius: 14px;
+      padding: 18px 20px;
+      margin-bottom: 20px;
+    }
+    .cover-box li {
+      list-style: none;
+      font-size: 13.5px;
+      margin-bottom: 8px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      color: #FFFFFF;
+    }
+    .cover-footer {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-end;
+      border-top: 1px solid rgba(255, 255, 255, 0.2);
+      padding-top: 14px;
+    }
+
+    /* ボタン・リンク */
+    .btn {
+      background-color: #E8822A;
+      color: #FFFFFF;
+      text-decoration: none;
+      padding: 12px 24px;
+      border-radius: 8px;
+      font-weight: 700;
+      font-size: 14px;
+      display: inline-block;
+      text-align: center;
+      box-shadow: 0 4px 8px rgba(232, 130, 42, 0.35);
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ==================== PÁGINA 1: PORTADA ==================== -->
+  <div class="page cover-page">
+    <div>
+      <div class="cover-header-brand">
+        <img class="cover-logo-img" src="file:///Users/sanakamiya/Library/CloudStorage/GoogleDrive-kamiyajuku.japones@gmail.com/マイドライブ/インスタグラム/instagram_automation/brand_logo_main.png" alt="Kamiya Juku Logo">
+        <div>
+          <div class="cover-brand-title">KAMIYA JUKU <span style="font-size: 16px; font-weight: normal; opacity: 0.85;">神谷塾</span></div>
+          <div class="cover-brand-sub">Academia de Japonés 🇯🇵 Barcelona & Online</div>
+        </div>
+      </div>
+
+      <div class="cover-badge">GUÍA EXCLUSIVA JLPT N5 / N4</div>
+      <h1 class="cover-title">
+        Las Partículas<br><span>Definitivas</span> del Japonés
+      </h1>
+      <p class="cover-subtitle">
+        Aprende a diferenciar <b>「に vs で」</b>, <b>「は vs が」</b> y las estructuras más tramposas del examen JLPT explicadas para hispanohablantes.
+      </p>
+      
+      <div class="cover-box">
+        <ul>
+          <li>✅ <b>Reglas de oro</b> visuales con todas las palabras en kanji con furigana.</li>
+          <li>✅ <b>Los 5 errores más comunes</b> que cometen los hispanohablantes en el examen.</li>
+          <li>✅ <b>Chuleta rápida (Cheat Sheet)</b> de consulta para repasar antes del test.</li>
+          <li>✅ <b>Mini examen de autodiagnóstico</b> con respuestas y explicaciones.</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="cover-footer">
+      <div>
+        <p style="font-size: 13px; color: #EEF4EA; margin: 0; font-weight: 600;">Sana Kamiya | Fundadora y Profesora</p>
+        <p style="font-size: 11px; color: #CBD5E0; margin: 0;">Email: info@kamiyajuku.com | Web: kamiyajuku.com</p>
+      </div>
+      <div style="font-size: 12px; color: #F9B233; font-weight: 700;">
+        Instagram: @japones_kamiyajuku
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== PÁGINA 2: に (NI) vs で (DE) ==================== -->
+  <div class="page">
+    <div>
+      <div class="header">
+        <div class="brand-logo">
+          <img src="file:///Users/sanakamiya/Library/CloudStorage/GoogleDrive-kamiyajuku.japones@gmail.com/マイドライブ/インスタグラム/instagram_automation/brand_logo_main.png" alt="Logo">
+          <div>KAMIYA JUKU <span style="font-size: 12px; font-weight: normal; color: #718096;">| Guía JLPT</span></div>
+        </div>
+        <div class="brand-tag">BLOQUE 1: PARTÍCULAS DE LUGAR</div>
+      </div>
+
+      <h2>1. El Gran Dilema: <span style="color: #2A5A35;">に (NI)</span> vs <span style="color: #E8822A;">で (DE)</span></h2>
+      <p>
+        En español usamos la palabra <b>"EN"</b> para casi todo: <i>"Vivo EN Madrid"</i> y <i>"Como EN el restaurante"</i>. En japonés, confundir estas dos partículas es el <b>fallo #1 en el JLPT N5 y N4</b>.
+      </p>
+
+      <div class="card card-green">
+        <h3><span class="badge badge-ni">に (NI)</span> 1. Existencia estática y Residencia</h3>
+        <p>Se utiliza cuando el sujeto <b>permanece o existe</b> en un lugar sin realizar una acción dinámica. Suele acompañar a verbos como <ruby>住<rt>す</rt></ruby>む (vivir), いる (estar personas/animales) y ある (estar objetos).</p>
+        <div class="jp-box">
+          <ruby>私<rt>わたし</rt></ruby>は <ruby>東京<rt>とうきょう</rt></ruby><b>に</b> <ruby>住<rt>す</rt></ruby>んでいます。
+          <span class="translation">Vivo en Tokio. (Estado de residencia)</span>
+        </div>
+        <div class="jp-box">
+          <ruby>机<rt>つくえ</rt></ruby>の <ruby>上<rt>うえ</rt></ruby><b>に</b> <ruby>猫<rt>ねこ</rt></ruby>が います。
+          <span class="translation">Hay un gato sobre la mesa. (Existencia fija)</span>
+        </div>
+      </div>
+
+      <div class="card card-orange">
+        <h3><span class="badge badge-de">で (DE)</span> 2. Acción activa y Evento</h3>
+        <p>Se utiliza cuando ocurre una <b>actividad o acción dinámica</b> en el lugar: leer, comer, estudiar, trabajar, comprar.</p>
+        <div class="jp-box">
+          <ruby>図書館<rt>としょかん</rt></ruby><b>で</b> <ruby>本<rt>ほん</rt></ruby>を <ruby>読<rt>よ</rt></ruby>みます。
+          <span class="translation">Leo libros en la biblioteca. (Acción: leer)</span>
+        </div>
+        <div class="jp-box">
+          レストラン<b>で</b> ラーメンを <ruby>食<rt>た</rt></ruby>べました。
+          <span class="translation">Comí ramen en el restaurante. (Acción: comer)</span>
+        </div>
+      </div>
+
+      <div class="card" style="background-color: #FFFDF5; border-color: #F9B233;">
+        <h3 style="color: #D97706;">⚠️ ¡Cuidado con la trampa del examen! (JLPT Trap)</h3>
+        <p style="font-size: 13px; margin: 0;">
+          El verbo <ruby>泊<rt>と</rt></ruby>まる (alojarse en un hotel) y <ruby>座<rt>すわ</rt></ruby>る (sentarse en una silla) se usan con <b>に (NI)</b> porque el resultado final es un punto de destino/estancia fija:<br>
+          👉 ホテル<b>に</b> <ruby>泊<rt>と</rt></ruby>まります (Alojarse en un hotel) / いす<b>に</b> <ruby>座<rt>すわ</rt></ruby>る (Sentarse en la silla).
+        </p>
+      </div>
+    </div>
+
+    <div class="footer">
+      <div class="footer-left">Kamiya Juku 🐈 Academia de Japonés</div>
+      <div class="page-number">Página 2 de 5</div>
+    </div>
+  </div>
+
+  <!-- ==================== PÁGINA 3: は (WA) vs が (GA) ==================== -->
+  <div class="page">
+    <div>
+      <div class="header">
+        <div class="brand-logo">
+          <img src="file:///Users/sanakamiya/Library/CloudStorage/GoogleDrive-kamiyajuku.japones@gmail.com/マイドライブ/インスタグラム/instagram_automation/brand_logo_main.png" alt="Logo">
+          <div>KAMIYA JUKU <span style="font-size: 12px; font-weight: normal; color: #718096;">| Guía JLPT</span></div>
+        </div>
+        <div class="brand-tag">BLOQUE 2: TEMA vs SUJETO</div>
+      </div>
+
+      <h2>2. El Enigma Resuelto: <span style="color: #3182CE;">は (WA)</span> vs <span style="color: #805AD5;">が (GA)</span></h2>
+      <p>
+        Tanto は como が pueden traducirse como el sujeto de una frase en español, pero transmiten <b>matices psicológicos y de información completamente distintos</b>.
+      </p>
+
+      <table>
+        <thead>
+          <tr>
+            <th style="width: 25%;">Partícula</th>
+            <th style="width: 35%;">Función Principal</th>
+            <th style="width: 40%;">Ejemplo Práctico</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><b>は (WA)</b><br><small style="color: #718096;">Marcador de TEMA</small></td>
+            <td><b>"En cuanto a X..."</b><br>Define el tema del que se va a hablar. El foco está en lo que viene <u>después</u>.</td>
+            <td>
+              <ruby>田中<rt>たなか</rt></ruby>さん<b>は</b> <ruby>先生<rt>せんせい</rt></ruby>です。<br>
+              <small style="color: #718096;">(Tanaka es profesor. El foco es "es profesor")</small>
+            </td>
+          </tr>
+          <tr>
+            <td><b>が (GA)</b><br><small style="color: #718096;">Marcador de SUJETO</small></td>
+            <td><b>"X es quien..."</b><br>Identifica específicamente al sujeto. El foco está en la <u>persona/cosa</u> antes del が.</td>
+            <td>
+              <ruby>田中<rt>たなか</rt></ruby>さん<b>が</b> <ruby>来<rt>き</rt></ruby>ました。<br>
+              <small style="color: #718096;">(¡Ha llegado Tanaka! El foco es Tanaka en sí)</small>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+
+      <div class="card card-green">
+        <h3>Regla Mnemotécnica para el Examen:</h3>
+        <ul style="padding-left: 18px; font-size: 13px; color: #2D3748; line-height: 1.6;">
+          <li><b>Preguntas con interrogativos (¿Quién?, ¿Qué?):</b> Siempre usan <b>が (GA)</b>.<br>
+            👉 <ruby>誰<rt>だれ</rt></ruby><b>が</b> <ruby>来<rt>き</rt></ruby>ますか？ (¿Quién vendrá?) ➔ <ruby>私<rt>わたし</rt></ruby><b>が</b> <ruby>行<rt>い</rt></ruby>きます。(¡Yo iré!)
+          </li>
+          <li><b>Fenómenos naturales inmediatos:</b> Cuando ves u oyes algo en el momento exacto, usa <b>が (GA)</b>.<br>
+            👉 あ、<ruby>雨<rt>あめ</rt></ruby><b>が</b> <ruby>降<rt>ふ</rt></ruby>ってきました！ (¡Ah, se ha puesto a llover!)
+          </li>
+          <li><b>Gustos, habilidades y deseos:</b> Siempre van acompañados de <b>が (GA)</b>.<br>
+            👉 すし<b>が</b> <ruby>好<rt>す</rt></ruby>きです / 日本語<b>が</b> できます / <ruby>水<rt>みず</rt></ruby><b>が</b> <ruby>飲<rt>の</rt></ruby>みたいです。
+          </li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="footer">
+      <div class="footer-left">Kamiya Juku 🐈 Academia de Japonés</div>
+      <div class="page-number">Página 3 de 5</div>
+    </div>
+  </div>
+
+  <!-- ==================== PÁGINA 4: CHULETA RÁPIDA (CHEAT SHEET) ==================== -->
+  <div class="page">
+    <div>
+      <div class="header">
+        <div class="brand-logo">
+          <img src="file:///Users/sanakamiya/Library/CloudStorage/GoogleDrive-kamiyajuku.japones@gmail.com/マイドライブ/インスタグラム/instagram_automation/brand_logo_main.png" alt="Logo">
+          <div>KAMIYA JUKU <span style="font-size: 12px; font-weight: normal; color: #718096;">| Guía JLPT</span></div>
+        </div>
+        <div class="brand-tag">BLOQUE 3: CHULETA RÁPIDA</div>
+      </div>
+
+      <h2>3. Chuleta Resumen de Partículas JLPT N5/N4</h2>
+      <p>Guarda esta tabla para repasar las partículas esenciales 10 minutos antes de tu examen o clase:</p>
+
+      <table>
+        <thead>
+          <tr>
+            <th>Partícula</th>
+            <th>Significado clave</th>
+            <th>Ejemplo de examen</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><b>を (O)</b></td>
+            <td>Objeto directo (lo que recibe la acción)</td>
+            <td>パン<b>を</b> <ruby>食<rt>た</rt></ruby>べる (Comer pan)</td>
+          </tr>
+          <tr>
+            <td><b>へ (E)</b></td>
+            <td>Dirección hacia donde vas</td>
+            <td>日本<b>へ</b> <ruby>行<rt>い</rt></ruby>きます (Ir hacia Japón)</td>
+          </tr>
+          <tr>
+            <td><b>と (TO)</b></td>
+            <td>Compañía ("con") / Unión cerrada ("y")</td>
+            <td><ruby>友達<rt>ともだち</rt></ruby><b>と</b> <ruby>話<rt>はな</rt></ruby>す (Hablar con amigos)</td>
+          </tr>
+          <tr>
+            <td><b>から (KARA)</b></td>
+            <td>Origen / Inicio ("desde", "porque")</td>
+            <td>9<ruby>時<rt>じ</rt></ruby><b>から</b> <ruby>始<rt>はじ</rt></ruby>まります (Empieza desde las 9)</td>
+          </tr>
+          <tr>
+            <td><b>まで (MADE)</b></td>
+            <td>Límite temporal o espacial ("hasta")</td>
+            <td><ruby>駅<rt>えき</rt></ruby><b>まで</b> <ruby>歩<rt>ある</rt></ruby>く (Caminar hasta la estación)</td>
+          </tr>
+          <tr>
+            <td><b>より (YORI)</b></td>
+            <td>Comparación ("más que...")</td>
+            <td>バス<b>より</b> <ruby>電車<rt>でんしゃ</rt></ruby>が <ruby>速<rt>はや</rt></ruby>い (El tren es más rápido)</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h2 style="margin-top: 16px;">4. Mini Test de Práctica (¿Aprobarias hoy?)</h2>
+      
+      <div class="card" style="background-color: #F8FAF7; margin-bottom: 0;">
+        <p style="margin-bottom: 6px;"><b>Q1.</b> <ruby>来週<rt>らいしゅう</rt></ruby>、スペイン（　）<ruby>帰<rt>かえ</rt></ruby>ります。</p>
+        <p style="margin-bottom: 10px; font-size: 12.5px; color: #718096;">A) で　B) に / へ　C) を ➔ <b style="color: #2A5A35;">Respuesta: B (Destino)</b></p>
+
+        <p style="margin-bottom: 6px;"><b>Q2.</b> この <ruby>部屋<rt>へや</rt></ruby>（　）テレビが あります。</p>
+        <p style="margin-bottom: 10px; font-size: 12.5px; color: #718096;">A) に　B) で　C) を ➔ <b style="color: #2A5A35;">Respuesta: A (Existencia)</b></p>
+
+        <p style="margin-bottom: 6px;"><b>Q3.</b> スーパー（　）りんごを <ruby>買<rt>か</rt></ruby>いました。</p>
+        <p style="margin-bottom: 0; font-size: 12.5px; color: #718096;">A) に　B) で　C) へ ➔ <b style="color: #2A5A35;">Respuesta: B (Acción activa)</b></p>
+      </div>
+    </div>
+
+    <div class="footer">
+      <div class="footer-left">Kamiya Juku 🐈 Academia de Japonés</div>
+      <div class="page-number">Página 4 de 5</div>
+    </div>
+  </div>
+
+  <!-- ==================== PÁGINA 5: CONTRAPORTADA & CTA ==================== -->
+  <div class="page cover-page" style="background: linear-gradient(145deg, #1A3E23 0%, #2A5A35 60%, #15311C 100%);">
+    <div>
+      <div class="cover-header-brand" style="margin-bottom: 16px;">
+        <img class="cover-logo-img" style="width: 76px; height: 76px;" src="file:///Users/sanakamiya/Library/CloudStorage/GoogleDrive-kamiyajuku.japones@gmail.com/マイドライブ/インスタグラム/instagram_automation/brand_logo_main.png" alt="Kamiya Juku Logo">
+        <div>
+          <div class="cover-brand-title" style="font-size: 22px;">KAMIYA JUKU <span style="font-size: 15px; font-weight: normal; opacity: 0.85;">神谷塾</span></div>
+          <div class="cover-brand-sub">Academia de Japonés 🇯🇵 Barcelona & Online</div>
+        </div>
+      </div>
+
+      <h1 style="font-size: 28px; color: #FFFFFF; line-height: 1.2; margin-bottom: 12px;">
+        ¿Listo para dominar el japonés de verdad? 🇯🇵
+      </h1>
+      <p style="color: #EEF4EA; font-size: 13.5px; margin-bottom: 16px;">
+        Aprender japonés no tiene por qué ser frustrante. En <b>Kamiya Juku</b> combinamos la pedagogía japonesa nativa con explicaciones cercanas y adaptadas a hispanohablantes.
+      </p>
+
+      <div class="cover-box" style="background: rgba(255,255,255,0.12); margin-bottom: 16px; padding: 14px 16px;">
+        <h3 style="color: #F9B233; margin-bottom: 6px; font-size: 14px;">Nuestros Servicios Académicos:</h3>
+        <ul>
+          <li>🌸 <b>Clases Particulares Online (1 a 1):</b> Adaptadas a tu ritmo, horario y objetivos (viaje, trabajo o JLPT).</li>
+          <li>🎎 <b>Grupos Reducidos:</b> Cursos dinámicos desde nivel inicial (Minna no Nihongo) hasta preparación N4/N3.</li>
+          <li>✈️ <b>Asesoría para Estudiar en Japón:</b> Orientación para visados de estudiante y escuelas en Japón.</li>
+        </ul>
+      </div>
+
+      <div style="text-align: center; margin: 16px 0;">
+        <div style="background-color: #FFFFFF; border-radius: 12px; padding: 18px; color: #2D3748;">
+          <h3 style="color: #2A5A35; font-size: 16px; margin-bottom: 4px;">🎁 Tu Regalo Exclusivo: Asesoría de 20 min</h3>
+          <p style="font-size: 12.5px; color: #4A5568; margin-bottom: 12px;">
+            Reserva una sesión gratuita por Google Meet con Sana Kamiya para evaluar tu nivel y crear tu plan de estudio.
+          </p>
+          <a href="https://calendar.google.com/calendar/u/0/appointments/schedules/AcZssZ2Ck8ilyip4dbkpqL1rsl5peJj1eFTh44Vfzp9UUTV09bGfb4duL5qL1Kphbx3gF71qeMjsDY-Q" class="btn" style="width: 100%;">
+            📅 Reservar mi Asesoría Gratuita Ahora
+          </a>
+        </div>
+      </div>
+    </div>
+
+    <div class="cover-footer">
+      <div>
+        <p style="font-size: 13px; color: #EEF4EA; margin: 0; font-weight: bold;">Kamiya Juku (神谷塾)</p>
+        <p style="font-size: 11px; color: #CBD5E0; margin: 0;">Email: info@kamiyajuku.com | Web: kamiyajuku.com</p>
+      </div>
+      <div style="font-size: 12px; color: #F9B233; font-weight: 700;">
+        Instagram: @japones_kamiyajuku
+      </div>
+    </div>
+  </div>
+
+</body>
+</html>

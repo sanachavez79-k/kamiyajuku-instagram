@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@700;800;900&family=Noto+Sans+JP:wght@500;700;900&display=swap');
+    
+    :root {{
+      --bg-pastel: {theme['bg_color']};
+      --primary-color: {theme['primary_color']};
+      --accent-color: {theme['accent_color']};
+    }}
+
+    * {{ box-sizing: border-box; margin: 0; padding: 0; }}
+    body {{ background: #D9D9D9; font-family: 'Plus Jakarta Sans', 'Noto Sans JP', sans-serif; }}
+    
+    .slide {{
+      width: 1080px; height: 1350px;
+      padding: 75px 70px;
+      position: relative;
+      display: flex; flex-direction: column; justify-content: space-between;
+      overflow: hidden;
+      background-color: var(--bg-pastel);
+    }}
+
+    /* ヘッダー */
+    .header {{
+      display: flex; justify-content: space-between; align-items: center;
+      border-bottom: 2px solid rgba(0,0,0,0.08); padding-bottom: 24px;
+    }}
+    .brand-logo {{ display: flex; align-items: center; gap: 16px; }}
+    .brand-logo img {{ width: 52px; height: 52px; object-fit: contain; }}
+    .brand-name {{ font-weight: 900; font-size: 26px; color: var(--primary-color); }}
+    .counter {{
+      background: #FFFFFF;
+      padding: 8px 20px;
+      border-radius: 20px;
+      font-weight: 800;
+      font-size: 20px;
+      color: var(--primary-color);
+      border: 1px solid rgba(0,0,0,0.08);
+      box-shadow: 0 2px 6px rgba(0,0,0,0.03);
+    }}
+    
+    /* ルビ */
+    ruby {{ ruby-position: over; }}
+    rt {{ font-size: 0.58em; color: var(--accent-color); font-weight: 800; }}
+
+    /* バッジ */
+    .badge {{
+      background: var(--primary-color);
+      color: #FFFFFF;
+      padding: 8px 20px;
+      border-radius: 24px;
+      font-weight: 800;
+      font-size: 19px;
+      display: inline-block;
+      margin-bottom: 24px;
+      letter-spacing: 0.5px;
+    }}
+    
+    /* タイトル */
+    h1 {{
+      font-size: 56px;
+      font-weight: 900;
+      line-height: 1.18;
+      color: #1A202C;
+      margin-bottom: 20px;
+    }}
+    h2 {{
+      font-size: 40px;
+      font-weight: 900;
+      color: var(--primary-color);
+      margin-bottom: 28px;
+    }}
+    
+    /* カード */
+    .card {{
+      background: #FFFFFF;
+      border-radius: 24px;
+      padding: 36px 40px;
+      margin-bottom: 24px;
+      border: 1px solid rgba(0,0,0,0.08);
+      box-shadow: 0 6px 20px rgba(0,0,0,0.03);
+    }}
+    
+    /* フッター */
+    .footer {{
+      display: flex; justify-content: space-between; align-items: center;
+      border-top: 2px solid rgba(0,0,0,0.08); padding-top: 24px;
+      font-size: 22px; font-weight: 700; color: #718096;
+    }}
+  </style>
+</head>
+<body>
+
+  <!-- 1. 表紙スライド（パステル背景） -->
+  <div class="slide" id="slide-1">
+    <div class="header">
+      <div class="brand-logo">
+        <img src="file://{LOGO_PATH}" alt="Logo">
+        <div class="brand-name">KAMIYA JUKU <span style="font-size: 18px; font-weight: normal; color: #718096;">神谷塾</span></div>
+      </div>
+      <div class="counter">1/6</div>
+    </div>
+    <div>
+      <div class="badge">{theme['tag_badge']}</div>
+      <h1>{topic_data['headline']}</h1>
+      <p style="font-size: 30px; color: #4A5568; line-height: 1.4; margin-bottom: 30px; font-weight: 600;">{topic_data['sub']}</p>
+      
+      <div class="card" style="border-left: 10px solid var(--primary-color); background: #FFFFFF;">
+        <p style="font-size: 24px; font-weight: 800; color: var(--primary-color); margin-bottom: 8px;">EN ESTA GUÍA:</p>
+        <p style="font-size: 26px; color: #2D3748; line-height: 1.4;">
+          Aprende a no volver a dudar en tu examen del <b>JLPT</b> con explicaciones claras y ejemplos prácticos.
+        </p>
+      </div>
+    </div>
+    <div class="footer">
+      <span>@japones_kamiyajuku</span>
+      <span style="color: var(--primary-color); font-weight: 800;">Desliza para ver la regla 👉</span>
+    </div>
+  </div>
+
+  <!-- 2. ルール解説スライド -->
+  <div class="slide" id="slide-2">
+    <div class="header">
+      <div class="brand-logo">
+        <img src="file://{LOGO_PATH}" alt="Logo">
+        <div class="brand-name">KAMIYA JUKU <span style="font-size: 18px; font-weight: normal; color: #718096;">神谷塾</span></div>
+      </div>
+      <div class="counter">2/6</div>
+    </div>
+    <div>
+      <div class="badge">{theme['tag_badge']}</div>
+      <h2>{topic_data['rule_title']}</h2>
+      
+      <div class="card" style="border-left: 10px solid var(--primary-color);">
+        <h3 style="font-size: 28px; color: var(--primary-color); font-weight: 800; margin-bottom: 10px;">1. に (NI) ➔ Existencia Fija</h3>
+        <p style="font-size: 24px; color: #2D3748; line-height: 1.5;">{topic_data['rule_ni']}</p>
+      </div>
+      
+      <div class="card" style="border-left: 10px solid var(--accent-color);">
+        <h3 style="font-size: 28px; color: var(--accent-color); font-weight: 800; margin-bottom: 10px;">2. で (DE) ➔ Acción Dinámica</h3>
+        <p style="font-size: 24px; color: #2D3748; line-height: 1.5;">{topic_data['rule_de']}</p>
+      </div>
+    </div>
+    <div class="footer">
+      <span>@japones_kamiyajuku</span>
+      <span style="color: var(--primary-color); font-weight: 800;">Pon a prueba tu nivel 📲</span>
+    </div>
+  </div>
+
+  <!-- 3. 問題スライド -->
+  <div class="slide" id="slide-3">
+    <div class="header">
+      <div class="brand-logo">
+        <img src="file://{LOGO_PATH}" alt="Logo">
+        <div class="brand-name">KAMIYA JUKU <span style="font-size: 18px; font-weight: normal; color: #718096;">神谷塾</span></div>
+      </div>
+      <div class="counter">3/6</div>
+    </div>
+    <div>
+      <div class="badge">MINI QUIZ JLPT 📝</div>
+      <h2>Completa los espacios en blanco:</h2>
+      <div class="card" style="padding: 40px;">
+        <p style="font-size: 20px; font-weight: 800; color: var(--primary-color); margin-bottom: 10px;">PREGUNTA 1</p>
+        <p style="font-size: 34px; font-weight: 700; color: #1A202C;">{topic_data['q1']}</p>
+      </div>
+      <div class="card" style="padding: 40px;">
+        <p style="font-size: 20px; font-weight: 800; color: var(--accent-color); margin-bottom: 10px;">PREGUNTA 2</p>
+        <p style="font-size: 34px; font-weight: 700; color: #1A202C;">{topic_data['q2']}</p>
+      </div>
+    </div>
+    <div class="footer">
+      <span>@japones_kamiyajuku</span>
+      <span style="color: var(--primary-color); font-weight: 800;">Desliza para ver las respuestas 👉</span>
+    </div>
+  </div>
+
+  <!-- 4. 解答スライド -->
+  <div class="slide" id="slide-4">
+    <div class="header">
+      <div class="brand-logo">
+        <img src="file://{LOGO_PATH}" alt="Logo">
+        <div class="brand-name">KAMIYA JUKU <span style="font-size: 18px; font-weight: normal; color: #718096;">神谷塾</span></div>
+      </div>
+      <div class="counter">4/6</div>
+    </div>
+    <div>
+      <div class="badge" style="background: var(--accent-color);">RESPUESTAS & EXPLICACIÓN ✅</div>
+      <h2>Explicación de las Respuestas:</h2>
+      <div class="card" style="border-left: 10px solid var(--primary-color);">
+        <p style="font-size: 28px; font-weight: 900; color: var(--primary-color);">Respuesta 1: {topic_data['q1_ans']}</p>
+        <p style="font-size: 22px; color: #4A5568; margin-top: 8px;">{topic_data['q1_exp']}</p>
+      </div>
+      <div class="card" style="border-left: 10px solid var(--accent-color);">
+        <p style="font-size: 28px; font-weight: 900; color: var(--accent-color);">Respuesta 2: {topic_data['q2_ans']}</p>
+        <p style="font-size: 22px; color: #4A5568; margin-top: 8px;">{topic_data['q2_exp']}</p>
+      </div>
+    </div>
+    <div class="footer">
+      <span>@japones_kamiyajuku</span>
+      <span style="color: var(--primary-color); font-weight: 800;">Resumen rápido para el examen 📌</span>
+    </div>
+  </div>
+
+  <!-- 5. チートシート -->
+  <div class="slide" id="slide-5">
+    <div class="header">
+      <div class="brand-logo">
+        <img src="file://{LOGO_PATH}" alt="Logo">
+        <div class="brand-name">KAMIYA JUKU <span style="font-size: 18px; font-weight: normal; color: #718096;">神谷塾</span></div>
+      </div>
+      <div class="counter">5/6</div>
+    </div>
+    <div>
+      <div class="badge">{theme['tag_badge']}</div>
+      <h2>Resumen Rápido (Guarda este post)</h2>
+      <div class="card" style="padding: 36px;">
+        <ul style="padding-left: 24px; font-size: 24px; line-height: 1.8; color: #2D3748;">
+          <li><b>{topic_data['rule_ni']}</b></li>
+          <li><b>{topic_data['rule_de']}</b></li>
+          <li>💡 Guarda esta publicación para repasar antes de tu próximo examen o clase de japonés.</li>
+        </ul>
+      </div>
+    </div>
+    <div class="footer">
+      <span>@japones_kamiyajuku</span>
+      <span style="color: var(--primary-color); font-weight: 800;">¡Aprende japonés real con nosotros! 🌸</span>
+    </div>
+  </div>
+
+  <!-- 6. CTAスライド（パステル背景） -->
+  <div class="slide" id="slide-6">
+    <div class="header">
+      <div class="brand-logo">
+        <img src="file://{LOGO_PATH}" alt="Logo">
+        <div class="brand-name">KAMIYA JUKU <span style="font-size: 18px; font-weight: normal; color: #718096;">神谷塾</span></div>
+      </div>
+      <div class="counter">6/6</div>
+    </div>
+    <div style="text-align: center;">
+      <h1 style="font-size: 50px; margin-bottom: 20px; color: var(--primary-color);">¿Quieres dominar el japonés este año? ⛩️🇯🇵</h1>
+      <p style="font-size: 26px; color: #4A5568; margin-bottom: 24px;">En <b>Kamiya Juku</b> te ayudamos a aprobar el JLPT y hablar japonés real.</p>
+      
+      <div class="card" style="padding: 38px 30px; margin: 20px 0; border: 2px solid var(--primary-color);">
+        <p style="font-size: 22px; font-weight: 800; color: #718096; letter-spacing: 1px;">ENVÍA UN MENSAJE DIRECTO (DM) CON LA PALABRA</p>
+        <p style="font-size: 64px; font-weight: 900; color: var(--primary-color); margin: 12px 0;">"{topic_data['cta_kw']}"</p>
+        <p style="font-size: 22px; color: #4A5568; font-weight: 600;">y te enviaremos nuestra <b>Guía PDF gratuita</b> + <b>Test diagnóstico</b></p>
+      </div>
+    </div>
+    <div class="footer">
+      <span>@japones_kamiyajuku</span>
+      <span style="color: var(--primary-color); font-weight: 800;">¡Síguenos y guarda este post! 🔖</span>
+    </div>
+  </div>
+
+</body>
+</html>

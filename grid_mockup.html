@@ -1,0 +1,401 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <title>神谷塾 公式Instagram プロフィールグリッドモックアップ</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@600;700;800;900&family=Noto+Sans+JP:wght@500;700;900&display=swap');
+    
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background-color: #FAFAFA;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif, 'Noto Sans JP';
+      color: #262626;
+      display: flex;
+      justify-content: center;
+      padding: 30px 10px;
+    }
+
+    .instagram-container {
+      width: 1080px;
+      background: #FFFFFF;
+      border: 1px solid #DBDBDB;
+      border-radius: 12px;
+      padding: 40px 50px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.06);
+    }
+
+    /* プロフィールヘッダー */
+    .profile-header {
+      display: flex;
+      align-items: center;
+      gap: 50px;
+      padding-bottom: 30px;
+      border-bottom: 1px solid #DBDBDB;
+      margin-bottom: 30px;
+    }
+    .profile-avatar {
+      width: 130px;
+      height: 130px;
+      border-radius: 50%;
+      padding: 4px;
+      background: linear-gradient(45deg, #F9B233, #43A047, #1B5E20);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .profile-avatar img {
+      width: 100%;
+      height: 100%;
+      border-radius: 50%;
+      background: #FFF;
+      object-fit: contain;
+    }
+    .profile-info h2 {
+      font-size: 26px;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 14px;
+    }
+    .profile-stats {
+      display: flex;
+      gap: 30px;
+      font-size: 16px;
+      margin-bottom: 14px;
+    }
+    .profile-stats b { font-weight: 700; }
+    .profile-bio {
+      font-size: 15px;
+      line-height: 1.5;
+      color: #333;
+    }
+
+    /* 9マスのグリッド */
+    .grid-container {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 18px;
+    }
+
+    .post-card {
+      aspect-ratio: 1 / 1;
+      border-radius: 12px;
+      padding: 24px 22px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      position: relative;
+      overflow: hidden;
+      box-shadow: 0 3px 10px rgba(0,0,0,0.04);
+      border: 1px solid rgba(0,0,0,0.06);
+      transition: transform 0.2s;
+    }
+
+    /* カラーパレットに基づく統一パステル背景 */
+    /* 月曜日：抹茶グリーンパステル */
+    .theme-monday {
+      background-color: #E8F5E9;
+      border-top: 6px solid #1B5E20;
+    }
+    /* 水曜日：ウォームマスタードパステル */
+    .theme-wednesday {
+      background-color: #FFF9E6;
+      border-top: 6px solid #E59800;
+    }
+    /* 金曜日：ソフトミント・ライトグリーンパステル */
+    .theme-friday {
+      background-color: #F1F8E9;
+      border-top: 6px solid #43A047;
+    }
+
+    /* スライド内の共通タイポグラフィ（文字サイズ統一） */
+    .card-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .brand-mini {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-weight: 800;
+      font-size: 14px;
+    }
+    .brand-mini img {
+      width: 28px;
+      height: 28px;
+      object-fit: contain;
+    }
+    .badge-pill {
+      font-size: 11px;
+      font-weight: 800;
+      padding: 4px 10px;
+      border-radius: 14px;
+      letter-spacing: 0.5px;
+    }
+    .badge-green { background: #1B5E20; color: #FFF; }
+    .badge-gold { background: #E59800; color: #FFF; }
+    .badge-soft { background: #43A047; color: #FFF; }
+
+    .card-body {
+      margin: 10px 0;
+    }
+    .main-title {
+      font-family: 'Plus Jakarta Sans', 'Noto Sans JP', sans-serif;
+      font-size: 20px;
+      font-weight: 900;
+      line-height: 1.25;
+      color: #1A202C;
+      margin-bottom: 8px;
+    }
+    .sub-text {
+      font-size: 13px;
+      color: #4A5568;
+      line-height: 1.4;
+      font-weight: 600;
+    }
+    .jp-highlight {
+      display: inline-block;
+      background: #FFFFFF;
+      padding: 3px 8px;
+      border-radius: 6px;
+      font-size: 14px;
+      font-weight: 700;
+      margin-top: 6px;
+      border: 1px solid rgba(0,0,0,0.08);
+    }
+
+    .card-bottom {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-top: 1px solid rgba(0,0,0,0.08);
+      padding-top: 10px;
+      font-size: 11.5px;
+      font-weight: 700;
+      color: #718096;
+    }
+    .carousel-icon {
+      font-size: 13px;
+      font-weight: 800;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="instagram-container">
+    <!-- プロフィール上部 -->
+    <div class="profile-header">
+      <div class="profile-avatar">
+        <img src="file:///Users/sanakamiya/Library/CloudStorage/GoogleDrive-kamiyajuku.japones@gmail.com/マイドライブ/インスタグラム/instagram_automation/brand_logo_main.png" alt="Kamiya Juku">
+      </div>
+      <div class="profile-info">
+        <h2>japones_kamiyajuku <span style="font-size: 14px; background: #E8F5E9; color: #1B5E20; padding: 4px 10px; border-radius: 6px;">神谷塾 ⛩️</span></h2>
+        <div class="profile-stats">
+          <span><b>36</b> publicaciones</span>
+          <span><b>1,420</b> seguidores</span>
+          <span><b>120</b> seguidos</span>
+        </div>
+        <div class="profile-bio">
+          <b>神谷塾 | Aprende Japonés con Sana Kamiya 🇯🇵🌸</b><br>
+          ⛩️ Clases Particulares Online & Grupos Reducidos (Barcelona)<br>
+          📚 Guía JLPT y preparación de visados para estudiar en Japón<br>
+          👇 <b>Descarga tu Guía en PDF gratis + Test de Nivel:</b><br>
+          <span style="color: #00376B; font-weight: 600;">kamiyajuku.com/test-nivel</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- 3列×3行のグリッド（9マス）モックアップ -->
+    <div class="grid-container">
+      
+      <!-- 【行1・最新】 -->
+      <!-- 月曜：JLPT文法（抹茶グリーンパステル） -->
+      <div class="post-card theme-monday">
+        <div class="card-top">
+          <div class="brand-mini">
+            <img src="file:///Users/sanakamiya/Library/CloudStorage/GoogleDrive-kamiyajuku.japones@gmail.com/マイドライブ/インスタグラム/instagram_automation/brand_logo_main.png">
+            <span style="color: #1B5E20;">KAMIYA JUKU</span>
+          </div>
+          <span class="badge-pill badge-green">JLPT N5/N4</span>
+        </div>
+        <div class="card-body">
+          <div class="main-title">¿Dices "Tokyo NI" o "Tokyo DE"? 🇯🇵</div>
+          <div class="sub-text">El fallo #1 en el examen</div>
+          <div class="jp-highlight" style="color: #1B5E20;">「に」vs「で」完全攻略</div>
+        </div>
+        <div class="card-bottom">
+          <span>@japones_kamiyajuku</span>
+          <span class="carousel-icon">📑 1/6</span>
+        </div>
+      </div>
+
+      <!-- 水曜：日常会話（マスタードパステル） -->
+      <div class="post-card theme-wednesday">
+        <div class="card-top">
+          <div class="brand-mini">
+            <img src="file:///Users/sanakamiya/Library/CloudStorage/GoogleDrive-kamiyajuku.japones@gmail.com/マイドライブ/インスタグラム/instagram_automation/brand_logo_main.png">
+            <span style="color: #E59800;">KAMIYA JUKU</span>
+          </div>
+          <span class="badge-pill badge-gold">CONVERSACIÓN</span>
+        </div>
+        <div class="card-body">
+          <div class="main-title">¿Cómo pedir perdón en japonés? 🙇‍♂️</div>
+          <div class="sub-text">Diferencias clave y matices</div>
+          <div class="jp-highlight" style="color: #B27B00;">すみません vs ごめん</div>
+        </div>
+        <div class="card-bottom">
+          <span>@japones_kamiyajuku</span>
+          <span class="carousel-icon">📑 1/6</span>
+        </div>
+      </div>
+
+      <!-- 金曜：日本留学・生活（ソフトミントパステル） -->
+      <div class="post-card theme-friday">
+        <div class="card-top">
+          <div class="brand-mini">
+            <img src="file:///Users/sanakamiya/Library/CloudStorage/GoogleDrive-kamiyajuku.japones@gmail.com/マイドライブ/インスタグラム/instagram_automation/brand_logo_main.png">
+            <span style="color: #2E7D32;">KAMIYA JUKU</span>
+          </div>
+          <span class="badge-pill badge-soft">ESTUDIO EN JAPÓN</span>
+        </div>
+        <div class="card-body">
+          <div class="main-title">¿Cuándo tramitar tu Visa? ✈️</div>
+          <div class="sub-text">Cronograma paso a paso</div>
+          <div class="jp-highlight" style="color: #2E7D32;">日本留学ビザ申請ガイド</div>
+        </div>
+        <div class="card-bottom">
+          <span>@japones_kamiyajuku</span>
+          <span class="carousel-icon">📑 1/6</span>
+        </div>
+      </div>
+
+      <!-- 【行2】 -->
+      <!-- 月曜 -->
+      <div class="post-card theme-monday">
+        <div class="card-top">
+          <div class="brand-mini">
+            <img src="file:///Users/sanakamiya/Library/CloudStorage/GoogleDrive-kamiyajuku.japones@gmail.com/マイドライブ/インスタグラム/instagram_automation/brand_logo_main.png">
+            <span style="color: #1B5E20;">KAMIYA JUKU</span>
+          </div>
+          <span class="badge-pill badge-green">JLPT N5/N4</span>
+        </div>
+        <div class="card-body">
+          <div class="main-title">¿"WA" o "GA"? ¡El enigma! 🎯</div>
+          <div class="sub-text">Tema vs Sujeto explicado fácil</div>
+          <div class="jp-highlight" style="color: #1B5E20;">「は」vs「が」徹底比較</div>
+        </div>
+        <div class="card-bottom">
+          <span>@japones_kamiyajuku</span>
+          <span class="carousel-icon">📑 1/6</span>
+        </div>
+      </div>
+
+      <!-- 水曜 -->
+      <div class="post-card theme-wednesday">
+        <div class="card-top">
+          <div class="brand-mini">
+            <img src="file:///Users/sanakamiya/Library/CloudStorage/GoogleDrive-kamiyajuku.japones@gmail.com/マイドライブ/インスタグラム/instagram_automation/brand_logo_main.png">
+            <span style="color: #E59800;">KAMIYA JUKU</span>
+          </div>
+          <span class="badge-pill badge-gold">CONVERSACIÓN</span>
+        </div>
+        <div class="card-body">
+          <div class="main-title">Frases esenciales de Anime 🍿</div>
+          <div class="sub-text">Lo que sí se usa en la vida real</div>
+          <div class="jp-highlight" style="color: #B27B00;">アニメのリアル日本語</div>
+        </div>
+        <div class="card-bottom">
+          <span>@japones_kamiyajuku</span>
+          <span class="carousel-icon">📑 1/6</span>
+        </div>
+      </div>
+
+      <!-- 金曜 -->
+      <div class="post-card theme-friday">
+        <div class="card-top">
+          <div class="brand-mini">
+            <img src="file:///Users/sanakamiya/Library/CloudStorage/GoogleDrive-kamiyajuku.japones@gmail.com/マイドライブ/インスタグラム/instagram_automation/brand_logo_main.png">
+            <span style="color: #2E7D32;">KAMIYA JUKU</span>
+          </div>
+          <span class="badge-pill badge-soft">CULTURA & TIPS</span>
+        </div>
+        <div class="card-body">
+          <div class="main-title">Vivir en Japón: ¿Cuánto cuesta? 💴</div>
+          <div class="sub-text">Presupuesto mensual para estudiantes</div>
+          <div class="jp-highlight" style="color: #2E7D32;">日本生活のリアル費用</div>
+        </div>
+        <div class="card-bottom">
+          <span>@japones_kamiyajuku</span>
+          <span class="carousel-icon">📑 1/6</span>
+        </div>
+      </div>
+
+      <!-- 【行3】 -->
+      <!-- 月曜 -->
+      <div class="post-card theme-monday">
+        <div class="card-top">
+          <div class="brand-mini">
+            <img src="file:///Users/sanakamiya/Library/CloudStorage/GoogleDrive-kamiyajuku.japones@gmail.com/マイドライブ/インスタグラム/instagram_automation/brand_logo_main.png">
+            <span style="color: #1B5E20;">KAMIYA JUKU</span>
+          </div>
+          <span class="badge-pill badge-green">JLPT N5/N4</span>
+        </div>
+        <div class="card-body">
+          <div class="main-title">Verbos Transitivos e Intransitivos 🔄</div>
+          <div class="sub-text">El truco para no confundir「開く/開ける」</div>
+          <div class="jp-highlight" style="color: #1B5E20;">自動詞・他動詞のコツ</div>
+        </div>
+        <div class="card-bottom">
+          <span>@japones_kamiyajuku</span>
+          <span class="carousel-icon">📑 1/6</span>
+        </div>
+      </div>
+
+      <!-- 水曜 -->
+      <div class="post-card theme-wednesday">
+        <div class="card-top">
+          <div class="brand-mini">
+            <img src="file:///Users/sanakamiya/Library/CloudStorage/GoogleDrive-kamiyajuku.japones@gmail.com/マイドライブ/インスタグラム/instagram_automation/brand_logo_main.png">
+            <span style="color: #E59800;">KAMIYA JUKU</span>
+          </div>
+          <span class="badge-pill badge-gold">CONVERSACIÓN</span>
+        </div>
+        <div class="card-body">
+          <div class="main-title">Palabras en Katakana Tramposas ☕</div>
+          <div class="sub-text">Inglés que no significa lo mismo</div>
+          <div class="jp-highlight" style="color: #B27B00;">和製英語トリビア</div>
+        </div>
+        <div class="card-bottom">
+          <span>@japones_kamiyajuku</span>
+          <span class="carousel-icon">📑 1/6</span>
+        </div>
+      </div>
+
+      <!-- 金曜 -->
+      <div class="post-card theme-friday">
+        <div class="card-top">
+          <div class="brand-mini">
+            <img src="file:///Users/sanakamiya/Library/CloudStorage/GoogleDrive-kamiyajuku.japones@gmail.com/マイドライブ/インスタグラム/instagram_automation/brand_logo_main.png">
+            <span style="color: #2E7D32;">KAMIYA JUKU</span>
+          </div>
+          <span class="badge-pill badge-soft">ESTUDIO EN JAPÓN</span>
+        </div>
+        <div class="card-body">
+          <div class="main-title">Top 3 Ciudades para Estudiar 🗾</div>
+          <div class="sub-text">Tokio vs Kioto vs Fukuoka</div>
+          <div class="jp-highlight" style="color: #2E7D32;">おすすめ留学都市比較</div>
+        </div>
+        <div class="card-bottom">
+          <span>@japones_kamiyajuku</span>
+          <span class="carousel-icon">📑 1/6</span>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+</body>
+</html>
