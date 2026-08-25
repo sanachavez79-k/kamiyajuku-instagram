@@ -164,37 +164,47 @@ WEEKLY_CONTENT_POOL = {
 
 def load_config_from_sheet(day_key="LUNES"):
     """
-    投稿アイデア管理シート.xlsx の該当曜日タブ（月曜_JLPT文法 / 水曜_日常会話 / 金曜_日本留学・ビザ）
+    content_ideas_sheet.xlsx の該当曜日タブ（Monday_JLPT / Wednesday_Conversation / Friday_Study_Visa）
     からステータスが【READY】になっている最新の行を読み込む
     """
     candidates = [
+        BASE_DIR / "content_ideas_sheet.xlsx",
+        BASE_DIR / "content_ideas_sheet.csv",
+        BASE_DIR.parent / "content_ideas_sheet.xlsx",
         BASE_DIR / "投稿アイデア管理シート.xlsx",
         BASE_DIR.parent / "投稿アイデア管理シート.xlsx",
+        Path("/Users/sanakamiya/Library/CloudStorage/GoogleDrive-kamiyajuku.japones@gmail.com/マイドライブ/インスタグラム/content_ideas_sheet.xlsx"),
         Path("/Users/sanakamiya/Library/CloudStorage/GoogleDrive-kamiyajuku.japones@gmail.com/マイドライブ/インスタグラム/投稿アイデア管理シート.xlsx")
     ]
     excel_path = None
     for p in candidates:
-        if p.exists():
+        if p.exists() and p.suffix == ".xlsx":
             excel_path = p
             break
 
     if not excel_path:
         return None
 
-    tab_map = {
-        "LUNES": "月曜_JLPT文法",
-        "MIERCOLES": "水曜_日常会話",
-        "VIERNES": "金曜_日本留学・ビザ"
+    # 英語タブ名・日本語タブ名の両方に対応
+    tab_aliases = {
+        "LUNES": ["Monday_JLPT", "月曜_JLPT文法", "LUNES", "Monday", "月曜"],
+        "MIERCOLES": ["Wednesday_Conversation", "水曜_日常会話", "MIERCOLES", "Wednesday", "水曜"],
+        "VIERNES": ["Friday_Study_Visa", "金曜_日本留学・ビザ", "VIERNES", "Friday", "金曜"]
     }
-    target_sheet_name = tab_map.get(day_key, "月曜_JLPT文法")
+    target_sheet_names = tab_aliases.get(day_key, ["Monday_JLPT", "月曜_JLPT文法"])
 
     try:
         import openpyxl
         wb = openpyxl.load_workbook(excel_path, data_only=True)
-        if target_sheet_name not in wb.sheetnames:
+        ws = None
+        for name in target_sheet_names:
+            if name in wb.sheetnames:
+                ws = wb[name]
+                break
+
+        if ws is None:
             return None
 
-        ws = wb[target_sheet_name]
         ready_row = None
         # 5行目からデータを探索（A: No, B: ステータス, C: テーマ, D: 補足メモ）
         for r in range(5, ws.max_row + 1):

@@ -1,35 +1,40 @@
 """
-神谷塾 完全自律型 Instagram 運用スケジューラー (Autonomous Scheduler)
-======================================================
-1. 投稿前夜 21:00 (日・火・木) に翌日分のカルーセル（全6枚）＋キャプションを生成しTelegramへ通知。
-2. ユーザーはスマホからボタン1つで「承認」または「修正指示」。
-3. 投稿当日 18:00 (月・水・金) にInstagramへ公式自動投稿。
-4. テーマと生徒写真の自動切替:
-   - 月曜: JLPT文法・重要助詞 (抹茶パステル + 留学生集合写真)
-   - 水曜: 日常会話・リアル表現 (マスタードパステル + 祭り交流写真)
-   - 金曜: 日本留学・ビザ・文化 (ミントパステル + HOKKAIDO授業写真)
+Kamiya Juku Autonomous Instagram Scheduler (Cloud & Local Ready)
+================================================================
+1. Eve 21:00 CEST (Sun/Tue/Thu): Renders 6-slide carousel + caption and sends preview to Telegram.
+   - Listens for interactive buttons (Schedule, Approve Now, Revise) with instant answerCallbackQuery.
+   - Defaults to automatic publishing next day at 18:00 if no action taken (zero-stress guarantee).
+2. Today 18:00 CEST (Mon/Wed/Fri): Automatically publishes approved carousel to Instagram (@japones_kamiyajuku).
+3. 100% English file naming and full fallback support for content_ideas_sheet.xlsx.
 """
 
 import os
 import sys
 import time
 import json
+import re
 import asyncio
 from datetime import datetime, timedelta
 from pathlib import Path
+from zoneinfo import ZoneInfo
 
 BASE_DIR = Path(__file__).resolve().parent
 sys.path.insert(0, str(BASE_DIR))
 
-from render_master_carousel import render_day_carousel, get_current_week_config
+from render_master_carousel import render_day_carousel, get_current_week_config, auto_add_furigana
 from integrations.telegram_bot import TelegramNotificationClient
 from integrations.instagram_api import InstagramAPIClient
+
+MADRID_TZ = ZoneInfo("Europe/Madrid")
+
+def get_madrid_now() -> datetime:
+    """スペイン時間（Europe/Madrid）の現在日時を正確に取得"""
+    return datetime.now(MADRID_TZ)
 
 def clean_text_for_instagram(text: str) -> str:
     """HTMLタグ（ruby, span, b 等）を除去し、Instagram用の綺麗なプレーンテキストに変換"""
     if not text:
         return ""
-    import re
     # ruby タグ: <ruby>雨<rt>あめ</rt></ruby> -> 雨
     t = re.sub(r'<ruby>([^<]+)<rt>[^<]*</rt></ruby>', r'\1', text)
     # 残りのHTMLタグ除去
@@ -44,10 +49,10 @@ class KamiyajukuAutonomousScheduler:
         self.instagram = InstagramAPIClient()
         self.assets_dir = BASE_DIR / "generated_assets"
         self.assets_dir.mkdir(parents=True, exist_ok=True)
+        self.last_update_id = 0
 
     def generate_day_content_and_slides(self, day_key: str):
         """指定曜日のスライド画像全6枚とキャプションを生成"""
-        from render_master_carousel import get_current_week_config
         c = get_current_week_config(day_key)
         print(f"\n🚀 【{day_key}】 スライド全6枚のレンダリング開始... (テーマ: {c['pillar']})")
         slide_paths = asyncio.run(render_day_carousel(day_key))
@@ -86,9 +91,9 @@ class KamiyajukuAutonomousScheduler:
 
         return slide_paths, caption
 
-    def send_eve_preview(self, target_day_key: str, force: bool = False):
-        """前夜 21:00 にTelegramへプレビューと承認ボタンを送信（重複防止ロック付き）"""
-        today_str = datetime.now().strftime("%Y-%m-%d")
+    def send_eve_preview(self, target_day_key: str, force: bool = False, wait_for_button: bool = True):
+        """前夜 21:00 にTelegramへプレビューと承認ボタンを送信し、ボタン押下を待機"""
+        today_str = get_madrid_now().strftime("%Y-%m-%d")
         history_file = BASE_DIR / "scheduler_history.json"
         history = {}
         if history_file.exists():
@@ -106,7 +111,6 @@ class KamiyajukuAutonomousScheduler:
         slide_paths, caption = self.generate_day_content_and_slides(target_day_key)
         post_id = f"{target_day_key}_{int(time.time())}"
 
-        from render_master_carousel import get_current_week_config
         c = get_current_week_config(target_day_key)
         print(f"📡 前夜プレビューをTelegramへ配信中: 【{target_day_key}】 ({c['pillar']})")
         self.telegram.send_message(
@@ -115,7 +119,8 @@ class KamiyajukuAutonomousScheduler:
             f"以下のスライド全6枚とキャプションで、<b>明日 18:00（スペイン時間）にInstagram（@japones_kamiyajuku）へ自動公開</b>されます！🚀\n\n"
             f"💡 <b>【ご確認後の運用ガイド】</b>\n"
             f"・このままで問題なければ、<b>何も操作しなくても明日18:00に自動で公開</b>されます ✅\n"
-            f"・内容を変更したい場合は、Google Driveの <code>投稿アイデア管理シート.xlsx</code> を編集してください 📝"
+            f"・今すぐ公開したい場合 ➔ [ ⚡️ 承認して今すぐ投稿 ]\n"
+            f"・内容を変更したい場合 ➔ Google Driveの <code>content_ideas_sheet.xlsx</code> を編集してください 📝"
         )
         self.telegram.send_preview_package(slide_paths, caption, post_id=post_id)
         print("✅ Telegram配信完了！")
@@ -125,26 +130,77 @@ class KamiyajukuAutonomousScheduler:
         with open(history_file, "w", encoding="utf-8") as f:
             json.dump(history, f, indent=2)
 
+        # プレビュー送信後、最大10分間ボタン押下を待機（GitHub Actions / ローカル両対応）
+        if wait_for_button:
+            self.wait_for_user_action(timeout_seconds=600, expected_day=target_day_key)
+
         return slide_paths, caption, post_id
+
+    def wait_for_user_action(self, timeout_seconds: int = 600, expected_day: str = "LUNES"):
+        """ボタン押下をリアルタイム待機（最大timeout_seconds秒）。押されたら即座に応答してグルグルを解消"""
+        print(f"⏳ Telegramボタン押下を待機中（最大 {timeout_seconds} 秒）...")
+        start_time = time.time()
+        import requests
+
+        while time.time() - start_time < timeout_seconds:
+            try:
+                url = f"{self.telegram.base_url}/getUpdates"
+                res = requests.get(url, params={"offset": self.last_update_id + 1, "timeout": 5}, timeout=10)
+                data = res.json()
+                if not data.get("ok"):
+                    time.sleep(2)
+                    continue
+
+                for u in data.get("result", []):
+                    self.last_update_id = u["update_id"]
+
+                    if "callback_query" in u:
+                        cb = u["callback_query"]
+                        cb_data = cb.get("data", "")
+                        cb_id = cb.get("id")
+
+                        # 即座にグルグルを止める
+                        requests.post(
+                            f"{self.telegram.base_url}/answerCallbackQuery",
+                            json={"callback_query_id": cb_id, "text": "✅ 受付完了しました！"}
+                        )
+                        print(f"📲 Telegramボタン押下検知: {cb_data}")
+
+                        if cb_data.startswith("SCHEDULE"):
+                            self.telegram.send_message(
+                                f"🎉 <b>【予約承認完了】</b>\n\n"
+                                f"明日 18:00（スペイン時間）にInstagram公式アカウント（@japones_kamiyajuku）へ自動公開するよう予約しました！🚀✨"
+                            )
+                            print("🎉 承認完了を確認しました。")
+                            return True
+
+                        elif cb_data.startswith("APPROVE_NOW"):
+                            self.telegram.send_message("🚀 <b>【即時公開処理中】</b> 公式Instagramへ投稿しています...")
+                            self.publish_today_post(expected_day)
+                            return True
+
+                        elif cb_data.startswith("REVISE"):
+                            self.telegram.send_message(
+                                "📝 <b>【修正ガイド】</b>\n"
+                                "Google Drive上の <code>content_ideas_sheet.xlsx</code> の該当行を編集して保存してください。\n"
+                                "修正された内容で次回の生成・投稿が行われます！"
+                            )
+                            return True
+
+            except Exception as e:
+                pass
+
+            time.sleep(2)
+
+        print("⏰ 待機時間が終了しました。翌日18:00の自動スケジュールに移行します。")
+        return False
 
     def publish_today_post(self, day_key: str):
         """当日 18:00 にInstagramへ投稿"""
-        schedule_file = BASE_DIR / "approved_schedule.json"
-        
-        # 承認済みスケジュールがある場合はそれを使用
-        if schedule_file.exists():
-            try:
-                with open(schedule_file, "r", encoding="utf-8") as f:
-                    data = json.load(f)
-                slide_paths = data.get("slides", [])
-                caption = data.get("caption", "")
-                day_key = data.get("day_key", day_key)
-                print(f"📦 承認済みスケジュールデータを読み込みました: 【{day_key}】")
-            except Exception as e:
-                print(f"⚠️ スケジュールファイル読み込みエラー: {e}")
-                slide_paths, caption = self.generate_day_content_and_slides(day_key)
-        else:
-            slide_paths, caption = self.generate_day_content_and_slides(day_key)
+        # 最新の未処理ボタン更新をすべてチェックして answerCallbackQuery
+        self.poll_telegram_updates()
+
+        slide_paths, caption = self.generate_day_content_and_slides(day_key)
 
         print(f"🚀 Instagram公式アカウントへ本番投稿中: 【{day_key}】")
         pub_res = self.instagram.publish_carousel_post(slide_paths, caption)
@@ -154,32 +210,51 @@ class KamiyajukuAutonomousScheduler:
             f"🎉 <b>【Instagram自動公開完了！】</b>\n\n"
             f"本日（{day_key}）のカルーセル投稿が正常に公開されました！✨\n"
             f"🔗 <b>Media ID</b>: <code>{media_id}</code>\n"
-            f"📱 Instagramアプリでご確認ください！"
+            f"📱 Instagramアプリ（@japones_kamiyajuku）でご確認ください！"
         )
-
-        # 投稿完了後にスケジュールファイルを削除
-        if schedule_file.exists():
-            schedule_file.unlink(missing_ok=True)
 
         return pub_res
 
+    def poll_telegram_updates(self):
+        """Telegramのボタン押下（callback_query）を処理してグルグルを解消"""
+        import requests
+        try:
+            url = f"{self.telegram.base_url}/getUpdates"
+            res = requests.get(url, params={"offset": self.last_update_id + 1, "timeout": 2}, timeout=5)
+            data = res.json()
+            if not data.get("ok"):
+                return
+
+            for u in data.get("result", []):
+                self.last_update_id = u["update_id"]
+
+                if "callback_query" in u:
+                    cb = u["callback_query"]
+                    cb_id = cb.get("id")
+                    requests.post(
+                        f"{self.telegram.base_url}/answerCallbackQuery",
+                        json={"callback_query_id": cb_id, "text": "✅ 受付完了しました！"}
+                    )
+        except Exception:
+            pass
+
     def run_check_cycle(self):
-        """現在時刻を判定して前夜21:00通知または当日18:00投稿を実行（スリープ復帰時のキャッチアップ対応）"""
-        now = datetime.now()
+        """現在時刻を判定して前夜21:00通知または当日18:00投稿を実行"""
+        now = get_madrid_now()
         weekday = now.weekday() # 0: Mon, 1: Tue, 2: Wed, 3: Thu, 4: Fri, 5: Sat, 6: Sun
         hour = now.hour
         today_str = now.strftime("%Y-%m-%d")
 
         eve_mapping = {
-            6: "LUNES",     # 日曜 -> 月曜分
-            1: "MIERCOLES", # 火曜 -> 水曜分
-            3: "VIERNES"    # 木曜 -> 金曜分
+            6: "LUNES",     # 日曜 21:00 -> 月曜分
+            1: "MIERCOLES", # 火曜 21:00 -> 水曜分
+            3: "VIERNES"    # 木曜 21:00 -> 金曜分
         }
 
         today_mapping = {
-            0: "LUNES",     # 月曜
-            2: "MIERCOLES", # 水曜
-            4: "VIERNES"    # 金曜
+            0: "LUNES",     # 月曜 18:00
+            2: "MIERCOLES", # 水曜 18:00
+            4: "VIERNES"    # 金曜 18:00
         }
 
         history_file = BASE_DIR / "scheduler_history.json"
@@ -191,16 +266,13 @@ class KamiyajukuAutonomousScheduler:
             except Exception:
                 pass
 
-        # 1. 前夜プレビュー判定（21:00〜翌日未明にかけて未送信なら送信）
         if weekday in eve_mapping:
             target_day = eve_mapping[weekday]
             preview_key = f"preview_{today_str}_{target_day}"
-            # 21時以降、またはスリープ復帰で21時〜23時の間に未送信だった場合
             if hour >= 21 and not history.get(preview_key):
                 print(f"⏰ 前夜プレビュー配信トリガー検知: 翌日【{target_day}】分を配信します")
                 self.send_eve_preview(target_day)
 
-        # 2. 当日本番投稿判定（18:00以降に未投稿なら投稿）
         if weekday in today_mapping:
             target_day = today_mapping[weekday]
             publish_key = f"publish_{today_str}_{target_day}"
@@ -211,96 +283,18 @@ class KamiyajukuAutonomousScheduler:
                 with open(history_file, "w", encoding="utf-8") as f:
                     json.dump(history, f, indent=2)
 
-    def poll_telegram_updates(self):
-        """Telegramのボタン押下（callback_query）やメッセージをリアルタイム処理し、グルグルを即座に解消"""
-        import requests
-        if not hasattr(self, "last_update_id"):
-            self.last_update_id = 0
-
-        try:
-            url = f"{self.telegram.base_url}/getUpdates"
-            res = requests.get(url, params={"offset": self.last_update_id + 1, "timeout": 2}, timeout=5)
-            data = res.json()
-            if not data.get("ok"):
-                return
-
-            for u in data.get("result", []):
-                self.last_update_id = u["update_id"]
-
-                # 1. インラインボタン押下時
-                if "callback_query" in u:
-                    cb = u["callback_query"]
-                    cb_data = cb.get("data", "")
-                    cb_id = cb.get("id")
-
-                    # 即座にグルグルを止める
-                    requests.post(
-                        f"{self.telegram.base_url}/answerCallbackQuery",
-                        json={"callback_query_id": cb_id, "text": "✅ 受付完了しました！"}
-                    )
-
-                    print(f"📲 Telegramボタン押下検知: {cb_data}")
-
-                    if cb_data.startswith("SCHEDULE"):
-                        # 明日18:00の予約保存
-                        parts = cb_data.split("_")
-                        day_key = parts[1] if len(parts) > 1 else "LUNES"
-                        slide_paths, caption = self.generate_day_content_and_slides(day_key)
-                        
-                        schedule_file = BASE_DIR / "approved_schedule.json"
-                        with open(schedule_file, "w", encoding="utf-8") as f:
-                            json.dump({
-                                "day_key": day_key,
-                                "slides": slide_paths,
-                                "caption": caption,
-                                "approved": True,
-                                "scheduled_time": "18:00"
-                            }, f, ensure_ascii=False, indent=2)
-
-                        self.telegram.send_message(
-                            f"🎉 <b>【承認完了】</b>\n\n"
-                            f"明日（18:00 スペイン時間）にInstagram公式アカウント（@japones_kamiyajuku）へ自動公開するよう予約完了しました！🚀✨\n\n"
-                            f"（※明日18:00に公開完了通知をお届けします）"
-                        )
-                        print("🎉 承認完了！明日18:00投稿として保存しました。")
-
-                    elif cb_data.startswith("APPROVE_NOW"):
-                        parts = cb_data.split("_")
-                        day_key = parts[2] if len(parts) > 2 else "LUNES"
-                        self.telegram.send_message("🚀 <b>【即時公開処理中】</b> 公式Instagramへ投稿しています...")
-                        self.publish_today_post(day_key)
-
-                    elif cb_data.startswith("REVISE"):
-                        self.telegram.send_message(
-                            "✍️ <b>【修正受付】</b>\n変更したい箇所（例: 『タイトルを〜にして』『例文を〜に変えて』）をこのチャットにそのまま返信してください！"
-                        )
-
-                # 2. テキストメッセージ受信時
-                elif "message" in u and "text" in u["message"]:
-                    msg_text = u["message"]["text"].strip()
-                    msg_id = u["message"]["message_id"]
-                    print(f"💬 Telegramメッセージ受信: {msg_text}")
-
-        except Exception as e:
-            # タイムアウト等の軽微なエラーは無視
-            pass
-
     def run_forever(self):
-        """完全自律監視ループ（スケジュール判定 ＋ リアルタイムTelegramリスナー）"""
+        """完全自律監視ループ"""
         print("🤖 神谷塾 自律型スケジューラーが稼働開始しました（常駐監視中）...", flush=True)
 
         last_check_min = -1
         while True:
             try:
-                # 1. Telegramボタン押下を即座に処理（グルグル防止）
                 self.poll_telegram_updates()
-
-                # 2. スケジュール判定（1分に1回）
-                current_min = datetime.now().minute
+                current_min = get_madrid_now().minute
                 if current_min != last_check_min:
                     last_check_min = current_min
                     self.run_check_cycle()
-
             except Exception as e:
                 print(f"⚠️ スケジューラーループ内エラー: {e}")
 
@@ -314,15 +308,16 @@ if __name__ == "__main__":
             if len(sys.argv) > 2:
                 day = sys.argv[2].upper()
             else:
-                weekday = datetime.now().weekday()
+                weekday = get_madrid_now().weekday()
                 eve_map = {6: "LUNES", 1: "MIERCOLES", 3: "VIERNES"}
-                day = eve_map.get(weekday, "LUNES")
-            scheduler.send_eve_preview(day, force=True)
+                day = eve_map.get(weekday, "MIERCOLES")
+            # GitHub Actions実行時は wait_for_button=True (最大10分待機)
+            scheduler.send_eve_preview(day, force=True, wait_for_button=True)
         elif cmd in ["publish", "publish_today"]:
             if len(sys.argv) > 2:
                 day = sys.argv[2].upper()
             else:
-                weekday = datetime.now().weekday()
+                weekday = get_madrid_now().weekday()
                 today_map = {0: "LUNES", 2: "MIERCOLES", 4: "VIERNES"}
                 day = today_map.get(weekday, "LUNES")
             scheduler.publish_today_post(day)
