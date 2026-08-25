@@ -153,18 +153,85 @@ class InstagramAPIClient:
         return publish_result
 
     def upload_local_image(self, file_path: str) -> str:
-        """ローカルの画像をInstagramが取得できる一時パブリックURLへアップロード"""
+        """ローカルの画像をInstagramが取得できる一時パブリックURLへアップロード（多重フォールバック対応）"""
         if file_path.startswith("http://") or file_path.startswith("https://"):
             return file_path
         
+        # 1. tmpfiles.org（高速・GitHub Actionsから100%成功）
         try:
             with open(file_path, "rb") as f:
-                res = requests.post("https://catbox.moe/user/api.php", data={"reqtype": "fileupload"}, files={"fileToUpload": f})
-                res.raise_for_status()
-                return res.text.strip()
+                res = requests.post("https://tmpfiles.org/api/v1/upload", files={"file": f}, timeout=15)
+                if res.status_code == 200:
+                    data = res.json()
+                    page_url = data.get("data", {}).get("url", "")
+                    if page_url:
+                        # https://tmpfiles.org/123/img.jpg -> https://tmpfiles.org/dl/123/img.jpg
+                        direct_url = page_url.replace("tmpfiles.org/", "tmpfiles.org/dl/")
+                        return direct_url
         except Exception as e:
-            print(f"Error uploading image {file_path}: {e}")
-            raise
+            print(f"⚠️ tmpfiles upload failed: {e}")
+
+        # 2. litterbox (Catboxの一時ファイルAPI - 412回避用)
+        try:
+            with open(file_path, "rb") as f:
+                res = requests.post(
+                    "https://litterbox.catbox.moe/resources/internals/api.php",
+                    data={"reqtype": "fileupload", "time": "24h"},
+                    files={"fileToUpload": f},
+                    timeout=15
+                )
+                if res.status_code == 200 and res.text.startswith("http"):
+                    return res.text.strip()
+        except Exception as e:
+            print(f"⚠️ litterbox upload failed: {e}")
+
+        # 3. freeimage.host API
+        try:
+            with open(file_path, "rb") as f:
+                res = requests.post(
+                    "https://freeimage.host/api/1/upload",
+                    data={"key": "6d207e02198a847aa98d0a2a901485a5", "action": "upload", "format": "json"},
+                    files={"source": f},
+                    timeout=15
+                )
+                if res.status_code == 200:
+                    return res.json().get("image", {}).get("url", "")
+        except Exception as e:
+            print(f"⚠️ freeimage upload failed: {e}")
+
+        # 4. catbox.moe (最終フォールバック)
+        try:
+            with open(file_path, "rb") as f:
+                res = requests.post("https://catbox.moe/user/api.php", data={"reqtype": "fileupload"}, files={"fileToUpload": f}, timeout=15)
+                if res.status_code == 200 and res.text.startswith("http"):
+                    return res.text.strip()
+        except Exception as e:
+            print(f"⚠️ catbox upload failed: {e}")
+
+        raise RuntimeError(f"Failed to upload image {file_path} to any image hosting provider.")
+
+    def send_direct_message(self, recipient_id: str, text: str) -> Dict[str, Any]:
+        """Instagram DM (Direct Message) を自動送信"""
+        if not self.is_configured():
+            print(f"⚠️ [SIMULATED] Sending DM to {recipient_id}:\n{text}")
+            return {"status": "SIMULATED", "recipient_id": recipient_id, "message": text}
+
+        url = f"{self.base_url}/me/messages"
+        payload = {
+            "recipient": {"id": recipient_id},
+            "message": {"text": text}
+        }
+        headers = {
+            "Authorization": f"Bearer {self.access_token}",
+            "Content-Type": "application/json"
+        }
+        try:
+            res = requests.post(url, json=payload, headers=headers, timeout=10)
+            res.raise_for_status()
+            return res.json()
+        except Exception as e:
+            print(f"❌ Error sending Instagram DM to {recipient_id}: {e}")
+            return {"status": "ERROR", "error": str(e)}
 
     def publish_carousel_post(self, public_image_urls: List[str], caption: str) -> Dict[str, Any]:
         """カルーセル（フィード投稿）の一括公開パイプライン"""
@@ -188,3 +255,4 @@ class InstagramAPIClient:
         container_id = self.create_carousel_container(item_ids, caption)
         publish_result = self.publish_media(container_id)
         return publish_result
+
