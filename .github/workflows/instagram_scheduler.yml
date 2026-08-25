@@ -31,6 +31,8 @@ jobs:
     steps:
       - name: 📥 リポジトリのチェックアウト
         uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: 🐍 Python環境のセットアップ
         uses: actions/setup-python@v5
@@ -77,7 +79,6 @@ jobs:
               python autonomous_scheduler.py publish VIERNES
             fi
           else
-            # 定期Cron実行時（UTC 19:00 = スペイン21:00前夜プレビュー, UTC 16:00 = スペイン18:00当日投稿）
             CURRENT_HOUR=$(date -u +%H)
             if [ "$CURRENT_HOUR" -ge 18 ]; then
               echo "🌙 前夜プレビュー配信を実行します..."
@@ -86,4 +87,17 @@ jobs:
               echo "🚀 当日Instagram本番投稿を実行します..."
               python autonomous_scheduler.py publish_today
             fi
+          fi
+
+      - name: 🔄 ステータス更新（CSV）のコミット＆プッシュ
+        if: always()
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add 02_planning/content_ideas_sheet.csv content_ideas_sheet.csv 2>/dev/null || true
+          if git diff --staged --quiet; then
+            echo "ℹ️ No changes in content_ideas_sheet.csv to commit."
+          else
+            git commit -m "chore: auto-update content queue status (published)"
+            git push origin main || true
           fi

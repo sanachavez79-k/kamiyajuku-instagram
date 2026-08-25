@@ -1,23 +1,27 @@
 import asyncio
+import csv
+import re
 from pathlib import Path
 from playwright.async_api import async_playwright
 from datetime import datetime, timedelta
+from zoneinfo import ZoneInfo
 
 BASE_DIR = Path(__file__).resolve().parent
 ASSETS_DIR = BASE_DIR / "generated_assets"
+ASSETS_DIR.mkdir(parents=True, exist_ok=True)
 LOGO_PATH = BASE_DIR / "assets" / "brand_logo_main.png"
 
-# 生徒・活動写真のパス設定（リポジトリ内ポータブル配置）
 PHOTO_MONDAY = BASE_DIR / "assets" / "photo_monday.jpg"
 PHOTO_WEDNESDAY = BASE_DIR / "assets" / "photo_wednesday.jpg"
 PHOTO_FRIDAY = BASE_DIR / "assets" / "photo_friday.jpg"
 
-# 週替わり（Week 1 〜 Week 4）コンテンツプール
+MADRID_TZ = ZoneInfo("Europe/Madrid")
+
+# 週替わりフォールバック用コンテンツプール
 WEEKLY_CONTENT_POOL = {
     "LUNES": [
-        # Week 1: に vs で
         {
-            "pillar": "JLPT文法・重要助詞 (Week 1)",
+            "pillar": "JLPT文法・重要助詞 (に vs で)",
             "tag_text": "JLPT N5 / N4 GRAMÁTICA ⛩️",
             "bg_primary": "#EEF4EA", "brand_deep": "#1B5E20", "accent_main": "#E8822A", "accent_light": "#DCEBD6",
             "student_photo": PHOTO_MONDAY, "photo_position": "center 20%",
@@ -25,19 +29,18 @@ WEEKLY_CONTENT_POOL = {
             "subtitle": "El error con las partículas「に」y「で」que el 90% comete en el JLPT.",
             "hero_left": {"char": "に", "color": "#E8822A", "desc": "Estancia / Destino"},
             "hero_right": {"char": "で", "color": "#1B5E20", "desc": "Acción Activa"},
-            "rule1": {"badge": "に (NI)", "badge_bg": "#E8822A", "title": "Lugar de Estancia / Destino", "desc": "Indica DÓNDE está una persona/objeto o a dónde vas.", "ja": '<ruby>東京<rt>とうきょう</rt></ruby><span style="color: #E8822A; font-weight: 900;">に</span> <ruby>住<rt>す</rt></ruby>んでいます。', "es": "Vivo EN Tokio. (Verbo de permanencia)"},
-            "rule2": {"badge": "で (DE)", "badge_bg": "#1B5E20", "title": "Lugar de Acción Activa", "desc": "Indica DÓNDE ocurre una actividad o evento dinámico.", "ja": 'レストラン<span style="color: #1B5E20; font-weight: 900;">で</span> <ruby>食<rt>た</rt></ruby>べます。', "es": "Como EN un restaurante. (Verbo de acción)"},
-            "q1_ja": '<ruby>図書館<rt>としょかん</rt></ruby>（ &nbsp;&nbsp;&nbsp;&nbsp; ）<ruby>本<rt>ほん</rt></ruby>を <ruby>読<rt>よ</rt></ruby>みます。', "q1_es": "Toshokan ( ) hon o yomimasu. (Leo libros en la biblioteca)",
-            "q2_ja": '<ruby>机<rt>つくえ</rt></ruby>の <ruby>上<rt>うえ</rt></ruby>（ &nbsp;&nbsp;&nbsp;&nbsp; ）<ruby>猫<rt>ねこ</rt></ruby>が います。', "q2_es": "Tsukue no ue ( ) neko ga imasu. (Hay un gato sobre la mesa)",
-            "a1_text": "Respuesta: で (DE)", "a1_desc": '¡Porque "leer (<ruby>読<rt>よ</rt></ruby>む)" es una <strong>acción activa</strong> en el lugar!',
-            "a2_text": "Respuesta: に (NI)", "a2_desc": '¡Porque "estar/haber (いる)" indica <strong>existencia estática / estancia</strong>!',
-            "cheat_t1": "¿Hay movimiento / acción activa?", "cheat_b1": '➔ <ruby>食<rt>た</rt></ruby>べる, <ruby>勉強<rt>べんきょう</rt></ruby>する, <ruby>買<rt>か</rt></ruby>う = <strong style="color: #E8822A; font-size: 42px;">で (DE)</strong>',
-            "cheat_t2": "¿Es estancia, estar o destino?", "cheat_b2": '➔ <ruby>住<rt>す</rt></ruby>む, いる, ある, <ruby>行<rt>い</rt></ruby>く = <strong style="color: #1B5E20; font-size: 42px;">に (NI)</strong>',
+            "rule1": {"badge": "に (NI)", "badge_bg": "#E8822A", "title": "Lugar de Estancia / Destino", "desc": "Indica DÓNDE está una persona/objeto o a dónde vas.", "ja": '<ruby>東京<rt>とうきょう</rt></ruby>に <ruby>住<rt>す</rt></ruby>んでいます。', "es": "Vivo EN Tokio (Estancia fija)."},
+            "rule2": {"badge": "で (DE)", "badge_bg": "#1B5E20", "title": "Lugar de Acción Activa", "desc": "Indica DÓNDE ocurre una actividad o evento dinámico.", "ja": 'レストランで <ruby>食<rt>た</rt></ruby>べます。', "es": "Como EN un restaurante (Acción)."},
+            "q1_ja": '<ruby>図書館<rt>としょかん</rt></ruby>（ &nbsp;&nbsp;&nbsp;&nbsp; ）<ruby>本<rt>ほん</rt></ruby>を <ruby>読<rt>よ</rt></ruby>みます。', "q1_es": "Toshokan ( ) hon o yomimasu.",
+            "q2_ja": '<ruby>机<rt>つくえ</rt></ruby>の <ruby>上<rt>うえ</rt></ruby>（ &nbsp;&nbsp;&nbsp;&nbsp; ）<ruby>猫<rt>ねこ</rt></ruby>が います。', "q2_es": "Tsukue no ue ( ) neko ga imasu.",
+            "a1_text": "Respuesta: で (DE)", "a1_desc": '¡Porque "leer" es una acción activa en el lugar!',
+            "a2_text": "Respuesta: に (NI)", "a2_desc": '¡Porque "estar/haber" indica existencia estática!',
+            "cheat_t1": "¿Hay movimiento / acción activa?", "cheat_b1": '➔ 食べる, 勉強する, 買う = で (DE)',
+            "cheat_t2": "¿Es estancia, estar o destino?", "cheat_b2": '➔ 住む, いる, ある, 行く = に (NI)',
             "dm_keyword": "JLPT", "dm_gift": "<b>Guía PDF gratuita de partículas</b> + <b>Test de Nivel</b>"
         },
-        # Week 2: は vs が
         {
-            "pillar": "JLPT文法・重要助詞 (Week 2)",
+            "pillar": "JLPT文法・重要助詞 (は vs が)",
             "tag_text": "JLPT N5 / N4 GRAMÁTICA ⛩️",
             "bg_primary": "#EEF4EA", "brand_deep": "#1B5E20", "accent_main": "#E8822A", "accent_light": "#DCEBD6",
             "student_photo": PHOTO_MONDAY, "photo_position": "center 20%",
@@ -45,246 +48,278 @@ WEEKLY_CONTENT_POOL = {
             "subtitle": "La duda más común explicada con la regla de 'Tema vs Sujeto & Clima'.",
             "hero_left": {"char": "は", "color": "#E8822A", "desc": "Tema Principal"},
             "hero_right": {"char": "が", "color": "#1B5E20", "desc": "Sujeto / Clima y Fenómenos"},
-            "rule1": {"badge": "は (WA)", "badge_bg": "#E8822A", "title": "Presenta el Tema ('En cuanto a...')", "desc": "Pone el foco en lo que viene DESPUÉS de la partícula.", "ja": '<ruby>私<rt>わたし</rt></ruby><span style="color: #E8822A; font-weight: 900;">は</span> カルロスです。', "es": "En cuanto a mí, soy Carlos."},
-            "rule2": {"badge": "が (GA)", "badge_bg": "#1B5E20", "title": "Sujeto & Fenómenos del Clima / Naturaleza", "desc": "Pone el foco en el sujeto y se usa SIEMPRE para fenómenos del clima y naturaleza.", "ja": '<ruby>雨<rt>あめ</rt></ruby><span style="color: #1B5E20; font-weight: 900;">が</span> <ruby>降<rt>ふ</rt></ruby>る / <ruby>雷<rt>かみなり</rt></ruby><span style="color: #1B5E20; font-weight: 900;">が</span> <ruby>鳴<rt>な</rt></ruby>る', "es": "Llueve / Hay truenos. (Hechos y clima que percibes)"},
+            "rule1": {"badge": "は (WA)", "badge_bg": "#E8822A", "title": "Presenta el Tema ('En cuanto a...')", "desc": "Pone el foco en lo que viene DESPUÉS de la partícula.", "ja": '<ruby>私<rt>わたし</rt></ruby>は カルロスです。', "es": "En cuanto a mí, soy Carlos."},
+            "rule2": {"badge": "が (GA)", "badge_bg": "#1B5E20", "title": "Sujeto & Fenómenos del Clima / Naturaleza", "desc": "Pone el foco en el sujeto y se usa SIEMPRE para fenómenos del clima y naturaleza.", "ja": '<ruby>雨<rt>あめ</rt></ruby>が <ruby>降<rt>ふ</rt></ruby>る / <ruby>雷<rt>かみなり</rt></ruby>が <ruby>鳴<rt>な</rt></ruby>る', "es": "Llueve / Hay truenos. (Hechos y clima que percibes)"},
             "q1_ja": '<ruby>雨<rt>あめ</rt></ruby>（ &nbsp;&nbsp;&nbsp;&nbsp; ）<ruby>降<rt>ふ</rt></ruby>っています。', "q1_es": "Ame ( ) futte imasu. (Está lloviendo)",
             "q2_ja": '<ruby>今日<rt>きょう</rt></ruby>（ &nbsp;&nbsp;&nbsp;&nbsp; ）いい <ruby>天気<rt>てんき</rt></ruby>ですね。', "q2_es": "Kyou ( ) ii tenki desu ne. (Hoy hace buen tiempo)",
             "a1_text": "Respuesta: が (GA)", "a1_desc": "¡El clima y fenómenos naturales (lluvia, truenos, viento) llevan SIEMPRE が!",
             "a2_text": "Respuesta: は (WA)", "a2_desc": "¡Porque 'Hoy (今日)' es el tema sobre el que estamos hablando!",
-            "cheat_t1": "¿Clima o preguntas con 誰 (quién), 何 (qué)?", "cheat_b1": '➔ <ruby>雨<rt>あめ</rt></ruby>が<ruby>降<rt>ふ</rt></ruby>る, <ruby>雷<rt>かみなり</rt></ruby>が<ruby>鳴<rt>な</rt></ruby>る = <strong style="color: #1B5E20; font-size: 38px;">が (GA)</strong>',
-            "cheat_t2": "¿Contrastes o temas de conversación?", "cheat_b2": '➔ Siempre llevan <strong style="color: #E8822A; font-size: 38px;">は (WA)</strong>',
+            "cheat_t1": "¿Clima o preguntas con 誰 (quién), 何 (qué)?", "cheat_b1": '➔ 雨が降る, 雷が鳴る = が (GA)',
+            "cheat_t2": "¿Contrastes o temas de conversación?", "cheat_b2": '➔ Siempre llevan は (WA)',
             "dm_keyword": "JLPT", "dm_gift": "<b>Guía PDF de Partículas N5/N4</b> + <b>Test de Nivel</b>"
-        },
-        # Week 3: ために vs ように
-        {
-            "pillar": "JLPT文法・重要助詞 (Week 3)",
-            "tag_text": "JLPT N4 / N3 GRAMÁTICA ⛩️",
-            "bg_primary": "#EEF4EA", "brand_deep": "#1B5E20", "accent_main": "#E8822A", "accent_light": "#DCEBD6",
-            "student_photo": PHOTO_MONDAY, "photo_position": "center 20%",
-            "title_html": '¿"Para hacer": <span style="color: #E8822A; text-decoration: underline;">TAME NI</span> o <span style="color: #1B5E20; text-decoration: underline;">YOU NI</span>? 🇯🇵🎯',
-            "subtitle": "Aprende a expresar objetivos y propósitos como un nativo.",
-            "hero_left": {"char": "ために", "color": "#E8822A", "desc": "Voluntad Directa"},
-            "hero_right": {"char": "ように", "color": "#1B5E20", "desc": "Estado Deseado"},
-            "rule1": {"badge": "ために (Tame ni)", "badge_bg": "#E8822A", "title": "Acción Voluntaria y Directa", "desc": "Verbos con control propio (comprar, estudiar, viajar).", "ja": '<ruby>日本<rt>にほん</rt></ruby>へ <ruby>行<rt>い</rt></ruby>く<span style="color: #E8822A; font-weight: 900;">ために</span>、<ruby>貯金<rt>ちょきん</rt></ruby>します。', "es": "Ahorro para ir a Japón. (Acción voluntaria)"},
-            "rule2": {"badge": "ように (You ni)", "badge_bg": "#1B5E20", "title": "Estado o Verbo Potencial", "desc": "Para que algo sea posible o no ocurra (poder hablar, no olvidar).", "ja": '<ruby>話<rt>はな</rt></ruby>せる<span style="color: #1B5E20; font-weight: 900;">ように</span>、<ruby>練習<rt>れんしゅう</rt></ruby>します。', "es": "Practico para poder hablar. (Verbo potencial)"},
-            "q1_ja": '<ruby>風邪<rt>かぜ</rt></ruby>を ひかない（ &nbsp;&nbsp;&nbsp;&nbsp; ）、マスクを します。', "q1_es": "Kaze o hikanai ( ), masuku o shimasu. (Para no resfriarme...)",
-            "q2_ja": '<ruby>家<rt>いえ</rt></ruby>を <ruby>買<rt>か</rt></ruby>う（ &nbsp;&nbsp;&nbsp;&nbsp; ）、<ruby>働<rt>はたら</rt></ruby>きます。', "q2_es": "Ie o kau ( ), hatarakimasu. (Para comprar una casa...)",
-            "a1_text": "Respuesta: ように (YOU NI)", "a1_desc": "¡Las formas negativas (〜ない) siempre van con ように!",
-            "a2_text": "Respuesta: ために (TAME NI)", "a2_desc": '¡Porque "comprar (買う)" es una acción bajo tu control directo!',
-            "cheat_t1": "¿Verbo potencial (できる) o negativo (ない)?", "cheat_b1": '➔ <strong style="color: #1B5E20; font-size: 42px;">ように (YOU NI)</strong>',
-            "cheat_t2": "¿Verbo de acción voluntaria directa?", "cheat_b2": '➔ <strong style="color: #E8822A; font-size: 42px;">ために (TAME NI)</strong>',
-            "dm_keyword": "JLPT", "dm_gift": "<b>Masterclass PDF de Gramática N4/N3</b> + <b>Test</b>"
         }
     ],
     "MIERCOLES": [
-        # Week 1: すみません vs ごめん
         {
-            "pillar": "日常会話・リアル表現 (Week 1)",
-            "tag_text": "CONVERSACIÓN REAL 💬",
-            "bg_primary": "#FFF9E6", "brand_deep": "#B27B00", "accent_main": "#E59800", "accent_light": "#FFEEC2",
-            "student_photo": PHOTO_WEDNESDAY, "photo_position": "center 30%",
-            "title_html": '¿Cómo pedir perdón en japonés? <span style="color: #B27B00; text-decoration: underline;">すみません</span> vs <span style="color: #E59800; text-decoration: underline;">ごめん</span> 🙇‍♂️✨',
-            "subtitle": "Diferencias clave para sonar natural con amigos y en el trabajo.",
-            "hero_left": {"char": "すみません", "color": "#B27B00", "desc": "Formal / Cortesía"},
-            "hero_right": {"char": "ごめん", "color": "#E59800", "desc": "Casual / Amigos"},
-            "rule1": {"badge": "すみません", "badge_bg": "#B27B00", "title": "Cortesía Universal", "desc": "Se usa con desconocidos, superiores o para llamar la atención (¡Disculpe!).", "ja": 'すみません、お<ruby>願<rt>ねが</rt></ruby>いします。', "es": "Disculpe, por favor. (Uso formal y educado)"},
-            "rule2": {"badge": "ごめん (ね)", "badge_bg": "#E59800", "title": "Cercano / Casual", "desc": "Solo para amigos cercanos, familia o pareja. ¡Nunca con jefes!", "ja": '<ruby>待<rt>ま</rt></ruby>たせて ごめんね！', "es": "¡Perdón por hacerte esperar! (Entre amigos)"},
-            "q1_ja": '（カフェで）「（ &nbsp;&nbsp;&nbsp;&nbsp; ）、お<ruby>水<rt>みず</rt></ruby>を ください。」', "q1_es": "(En una cafetería) ( ) omizu o kudasai. (Disculpe, agua por favor)",
-            "q2_ja": '（<ruby>友達<rt>ともだち</rt></ruby>に）「ちょっと <ruby>遅<rt>おく</rt></ruby>れる、（ &nbsp;&nbsp;&nbsp;&nbsp; ）！」', "q2_es": "(A un amigo) Chotto okureru, ( )! (Llego un poco tarde, ¡perdón!)",
-            "a1_text": "Respuesta: すみません", "a1_desc": "¡Para llamar al camarero o desconocidos siempre se usa すみません!",
-            "a2_text": "Respuesta: ごめん / ごめんね", "a2_desc": "¡Con amigos y personas de confianza se usa la forma casual ごめん!",
-            "cheat_t1": "¿En público o con desconocidos?", "cheat_b1": '➔ <strong style="color: #B27B00; font-size: 38px;">すみません</strong>',
-            "cheat_t2": "¿Con amigos cercanos o pareja?", "cheat_b2": '➔ <strong style="color: #E59800; font-size: 38px;">ごめん (ね)</strong>',
-            "dm_keyword": "JLPT", "dm_gift": "<b>Guía PDF de Conversación Real</b> + <b>Test de Nivel</b>"
-        },
-        # Week 2: 大丈夫の5つの意味
-        {
-            "pillar": "日常会話・リアル表現 (Week 2)",
-            "tag_text": "CONVERSACIÓN REAL 💬",
-            "bg_primary": "#FFF9E6", "brand_deep": "#B27B00", "accent_main": "#E59800", "accent_light": "#FFEEC2",
-            "student_photo": PHOTO_WEDNESDAY, "photo_position": "center 30%",
-            "title_html": 'Los 4 significados de <span style="color: #B27B00; text-decoration: underline;">だいじょうぶ (大丈夫)</span> 🤯🇯🇵',
-            "subtitle": "¿Significa 'Sí', 'No', 'Estoy bien' o 'No te preocupes'?",
-            "hero_left": {"char": "OK / Sí", "color": "#B27B00", "desc": "Aceptación"},
-            "hero_right": {"char": "No, gracias", "color": "#E59800", "desc": "Rechazo cortés"},
-            "rule1": {"badge": "1. 'Estoy bien / Sin problema'", "badge_bg": "#B27B00", "title": "Pregunta de bienestar", "desc": "Cuando alguien te pregunta si te has hecho daño o necesitas ayuda.", "ja": 'A: 大丈夫ですか？ B: はい、<ruby>大丈夫<rt>だいじょうぶ</rt></ruby>です！', "es": "A: ¿Estás bien? B: Sí, no pasa nada."},
-            "rule2": {"badge": "2. 'No, gracias' (Rechazo)", "badge_bg": "#E59800", "title": "En tiendas / restaurantes", "desc": "Cuando te ofrecen bolsa o recarga y quieres declinar educadamente.", "ja": 'A: レジ袋は要りますか？ B: あ、<ruby>大丈夫<rt>だいじょうぶ</rt></ruby>です。', "es": "A: ¿Quiere bolsa? B: Ah, estoy bien así (No, gracias)."},
-            "q1_ja": '（コンビニで店員に）「レシートは ご利用ですか？」 ➔ いらない時：', "q1_es": "(En el combini: ¿Desea el ticket? ➔ Cuando NO lo quieres:)",
-            "q2_ja": '（友達が転んだ時）「痛そう！ （ &nbsp;&nbsp;&nbsp;&nbsp; ）？」', "q2_es": "(Tu amigo se tropieza: ¡Parece que duele! ¿Estás bien?)",
-            "a1_text": "Respuesta: あ、大丈夫です (No, gracias)", "a1_desc": "¡Es la forma más natural y educada de decir 'No, gracias' en Japón!",
-            "a2_text": "Respuesta: 大丈夫？ (¿Estás bien?)", "a2_desc": "¡Pregunta directa de preocupación hacia un amigo o conocido!",
-            "cheat_t1": "¿Quieres decir 'No gracias' en una tienda?", "cheat_b1": '➔ Acompaña con un gesto de mano: <strong style="color: #B27B00; font-size: 36px;">大丈夫です</strong>',
-            "cheat_t2": "¿Te preguntan si puedes hacer algo el sábado?", "cheat_b2": '➔ ' + 'Sí, puedo: <strong style="color: #E59800; font-size: 36px;">土曜日、大丈夫！</strong>',
-            "dm_keyword": "JLPT", "dm_gift": "<b>Guía PDF de Frases Imprescindibles</b> + <b>Test</b>"
+            "pillar": "日常会話・リアル表現 (大丈夫の4つの意味)",
+            "tag_text": "JAPONÉS REAL 🇯🇵",
+            "bg_primary": "#FFFBEB", "brand_deep": "#B45309", "accent_main": "#D97706", "accent_light": "#FEF3C7",
+            "student_photo": PHOTO_WEDNESDAY, "photo_position": "center 25%",
+            "title_html": 'Los 4 significados de <span style="color: #D97706; text-decoration: underline;">だいじょうぶ (Daijoubu)</span> 🤯🇯🇵',
+            "subtitle": "¡No solo significa 'Estoy bien'! Aprende a usarlo como un verdadero nativo.",
+            "hero_left": {"char": "万能", "color": "#D97706", "desc": "4 Usos Clave"},
+            "hero_right": {"char": "日常", "color": "#B45309", "desc": "Conversación Real"},
+            "rule1": {"badge": "Significado 1 & 2", "badge_bg": "#D97706", "title": "OK (De acuerdo) / No gracias (Rechazo)", "desc": "Para aceptar con cortesía o para decir 'No gracias' en tiendas.", "ja": 'これで <ruby>大丈夫<rt>だいじょうぶ</rt></ruby>です / <ruby>袋<rt>ふくろ</rt></ruby>は <ruby>大丈夫<rt>だいじょうぶ</rt></ruby>です', "es": "Así está bien (OK) / Sin bolsa está bien (No gracias)."},
+            "rule2": {"badge": "Significado 3 & 4", "badge_bg": "#B45309", "title": "¿Estás bien? / Sin problemas de salud", "desc": "Para preguntar por el estado de alguien o confirmar que estás bien.", "ja": '<ruby>大丈夫<rt>だいじょうぶ</rt></ruby>ですか？ ➔ はい、<ruby>大丈夫<rt>だいじょうぶ</rt></ruby>です！', "es": "¿Te encuentras bien? ➔ ¡Sí, todo bien!"},
+            "q1_ja": '店員:「レジ<ruby>袋<rt>ふくろ</rt></ruby>は ご利用ですか？」 ➔ 客:「（ &nbsp;&nbsp;&nbsp;&nbsp; ）」', "q1_es": "¿Desea bolsa de plástico?",
+            "q2_ja": '友人が 転んだ時 ➔ 「（ &nbsp;&nbsp;&nbsp;&nbsp; ）！？」', "q2_es": "Cuando un amigo se tropieza.",
+            "a1_text": "Respuesta: 大丈夫です (Daijoubu desu)", "a1_desc": "¡La forma más natural y educada de decir 'No gracias' en tiendas!",
+            "a2_text": "Respuesta: 大丈夫！？ (Daijoubu!?)", "a2_desc": "¡La pregunta clave para saber si alguien necesita ayuda!",
+            "cheat_t1": "¿Para rechazar con cortesía en tiendas?", "cheat_b1": "➔ 大丈夫です (No gracias)",
+            "cheat_t2": "¿Para confirmar que no hay problema?", "cheat_b2": "➔ 大丈夫です (Todo bien / OK)",
+            "dm_keyword": "JLPT", "dm_gift": "<b>Guía PDF de Expresiones Cotidianas</b> + <b>Test de Nivel</b>"
         }
     ],
     "VIERNES": [
-        # Week 1: 留学ビザ申請タイムライン
         {
-            "pillar": "日本留学・ビザ・文化Tips (Week 1)",
-            "tag_text": "ESTUDIAR EN JAPÓN DESDE ESPAÑA ✈️🇪🇸🇯🇵",
-            "bg_primary": "#F1F8E9", "brand_deep": "#2E7D32", "accent_main": "#43A047", "accent_light": "#DCEDC8",
-            "student_photo": PHOTO_FRIDAY, "photo_position": "center 25%",
-            "title_html": '¿Cuándo tramitar tu <span style="color: #2E7D32; text-decoration: underline;">Visado de Estudiante</span> para Japón? ✈️🇪🇸',
-            "subtitle": "Cronograma paso a paso si viajas desde España (Madrid / Barcelona).",
-            "hero_left": {"char": "6 Meses", "color": "#2E7D32", "desc": "Antes: Trámite COE"},
-            "hero_right": {"char": "1-2 Meses", "color": "#43A047", "desc": "Antes: Consulado"},
-            "rule1": {"badge": "Paso 1: COE", "badge_bg": "#2E7D32", "title": "Certificado de Elegibilidad", "desc": "La escuela en Japón tramita tu COE en inmigración con 5 a 6 meses de antelación.", "ja": '<ruby>留学<rt>りゅうがく</rt></ruby>ビザの <ruby>申請<rt>しんせい</rt></ruby>スケジュール', "es": "Comienza a preparar tus documentos con 6 meses de antelación."},
-            "rule2": {"badge": "Paso 2: Visado", "badge_bg": "#43A047", "title": "Consulado en España", "desc": "Con tu COE, tramitas el visado en el Consulado en Barcelona o Embajada en Madrid (1 semana).", "ja": '<ruby>出発<rt>しゅっぱつ</rt></ruby>の <ruby>準備<rt>しゅっぱつ</rt></ruby>をしよう！', "es": "¡Recoges tu pasaporte visado y listos para volar a Japón!"},
-            "q1_ja": 'Q1: ¿Con cuántos meses de antelación debes empezar a preparar tu visado de estudiante?', "q1_es": "(a) 1 mes &nbsp;&nbsp;&nbsp;&nbsp; (b) 6 meses",
-            "q2_ja": 'Q2: ¿Dónde se estampa tu visado final una vez tienes el COE en España?', "q2_es": "(a) En el Consulado / Embajada en España &nbsp;&nbsp; (b) En el aeropuerto de Tokio",
-            "a1_text": "Respuesta: (b) 6 meses de antelación", "a1_desc": "¡Los trámites con las escuelas japonesas y la inmigración requieren tiempo!",
-            "a2_text": "Respuesta: (a) En el Consulado / Embajada en España", "a2_desc": "¡Presentas tu COE en Barcelona o Madrid y te estampan el visado en pocos días!",
-            "cheat_t1": "🗓️ Convocatoria de Abril (Primavera)", "cheat_b1": '➔ Documentación lista en: <strong style="color: #2E7D32; font-size: 34px;">Octubre - Noviembre</strong>',
-            "cheat_t2": "🍂 Convocatoria de Octubre (Otoño)", "cheat_b2": '➔ Documentación lista en: <strong style="color: #43A047; font-size: 34px;">Abril - Mayo</strong>',
-            "dm_keyword": "VISA", "dm_gift": "<b>Guía Completa para Estudiar en Japón desde España</b> + <b>Asesoría Gratuita</b>"
-        },
-        # Week 2: 生活費と住居事情
-        {
-            "pillar": "日本留学・ビザ・文化Tips (Week 2)",
-            "tag_text": "VIDA & ESTUDIO EN JAPÓN 💴🏠",
-            "bg_primary": "#F1F8E9", "brand_deep": "#2E7D32", "accent_main": "#43A047", "accent_light": "#DCEDC8",
-            "student_photo": PHOTO_FRIDAY, "photo_position": "center 25%",
-            "title_html": '¿Cuánto cuesta vivir como <span style="color: #2E7D32; text-decoration: underline;">Estudiante en Japón</span> al mes? 💴🇯🇵',
-            "subtitle": "Presupuesto real de alquiler, comida, transporte y trabajo a tiempo parcial.",
-            "hero_left": {"char": "¥120,000", "color": "#2E7D32", "desc": "Gasto mensual medio"},
-            "hero_right": {"char": "28 Horas", "color": "#43A047", "desc": "Trabajo permitido/sem"},
-            "rule1": {"badge": "Gastos Fijos", "badge_bg": "#2E7D32", "title": "Alquiler y Facturas", "desc": "Residencia de estudiantes o sharehouse: entre ¥45,000 y ¥70,000 al mes.", "ja": '<ruby>生活費<rt>せいかつひ</rt></ruby>の <ruby>目安<rt>めやす</rt></ruby>（シェアハウス・<ruby>寮<rt>りょう</rt></ruby>）', "es": "Alojamiento económico y céntrico para estudiantes."},
-            "rule2": {"badge": "Trabajo (Arubaito)", "badge_bg": "#43A047", "title": "Ingresos permitidos", "desc": "Con visa de estudiante puedes trabajar hasta 28 horas/semana (aprox. ¥110,000 - ¥130,000/mes).", "ja": '<ruby>留学生<rt>りゅうがくせい</rt></ruby>の アルバイト', "es": "¡Cubre gran parte de tu manutención trabajando legalmente!"},
-            "q1_ja": 'Q1: ¿Cuántas horas a la semana puede trabajar legalmente un estudiante extranjero en Japón?', "q1_es": "(a) 15 horas &nbsp;&nbsp;&nbsp;&nbsp; (b) 28 horas",
-            "q2_ja": 'Q2: ¿Cuál es el tipo de alojamiento más económico para empezar en Japón?', "q2_es": "(a) Apartamento individual propio &nbsp;&nbsp; (b) Sharehouse o Residencia de escuela",
-            "a1_text": "Respuesta: (b) Hasta 28 horas por semana", "a1_desc": "¡Con el permiso de actividades extra (Shikakugai Katsudou Kyoka) que tramitamos!",
-            "a2_text": "Respuesta: (b) Sharehouse o Residencia", "a2_desc": "¡No requiere avalistas ni pagar fianzas elevadas de entrada!",
-            "cheat_t1": "💡 Consejo de Kamiya Juku para ahorrar", "cheat_b1": '➔ Cocina en casa y aprovecha los supermercados locales (descuentos nocturnos).',
-            "cheat_t2": "💼 ¿Nivel de japonés necesario para trabajar?", "cheat_b2": '➔ Con <strong style="color: #2E7D32; font-size: 34px;">N5-N4</strong> accedes a cafeterías, hoteles y tiendas.',
-            "dm_keyword": "VISA", "dm_gift": "<b>Guía de Coste de Vida & Alojamiento en Japón</b> + <b>Asesoría</b>"
+            "pillar": "日本留学・ビザ (ビザ申請タイムライン)",
+            "tag_text": "ESTUDIAR EN JAPÓN ✈️",
+            "bg_primary": "#F0FDF4", "brand_deep": "#15803D", "accent_main": "#2E7D32", "accent_light": "#DCFCE7",
+            "student_photo": PHOTO_FRIDAY, "photo_position": "center 20%",
+            "title_html": '¿Quieres estudiar en Japón? <span style="color: #2E7D32; text-decoration: underline;">Calendario de Visa</span> 🇯🇵✈️',
+            "subtitle": "Timeline exacto desde España para no perder las convocatorias oficiales.",
+            "hero_left": {"char": "ビザ", "color": "#2E7D32", "desc": "Visado de Estudiante"},
+            "hero_right": {"char": "準備", "color": "#15803D", "desc": "Paso a Paso"},
+            "rule1": {"badge": "Paso 1 (5-6 meses antes)", "badge_bg": "#2E7D32", "title": "Elección de Escuela y CoE", "desc": "Seleccionar ciudad y preparar certificados bancarios de solvencia.", "ja": '<ruby>書類<rt>しょるい</rt></ruby>の <ruby>準備<rt>じゅんび</rt></ruby>を します。', "es": "Preparación de documentos oficiales y matrícula."},
+            "rule2": {"badge": "Paso 2 (1-2 meses antes)", "badge_bg": "#15803D", "title": "Emisión del CoE y Visado", "desc": "Inmigración aprueba tu CoE y el Consulado emite tu visa.", "ja": 'ビザが <ruby>発給<rt>はっきゅう</rt></ruby>されます。', "es": "Emisión oficial del visado en el pasaporte."},
+            "q1_ja": '留学生ビザの 申請は 出発の 何ヶ月前から？', "q1_es": "¿Con cuántos meses de antelación se tramita la visa de estudiante?",
+            "q2_ja": '留学ビザで アルバイトは できる？', "q2_es": "¿Se puede trabajar con visa de estudiante en Japón?",
+            "a1_text": "Respuesta: 5 a 6 meses de antelación", "a1_desc": "¡Porque Inmigración de Japón tarda hasta 3 meses en revisar el CoE!",
+            "a2_text": "Respuesta: Sí, hasta 28 horas por semana", "a2_desc": "¡Con el permiso oficial de actividades que Kamiya Juku te ayuda a tramitar!",
+            "cheat_t1": "📅 Convocatoria de Abril (Primavera)", "cheat_b1": "➔ Documentos en Octubre - Noviembre",
+            "cheat_t2": "📅 Convocatoria de Octubre (Otoño)", "cheat_b2": "➔ Documentos en Abril - Mayo",
+            "dm_keyword": "VISA", "dm_gift": "<b>Guía Completa para Estudiar en Japón desde España</b> + <b>Asesoría</b>"
         }
     ]
 }
 
 def load_config_from_sheet(day_key="LUNES"):
     """
-    content_ideas_sheet.xlsx の該当曜日タブ（Monday_JLPT / Wednesday_Conversation / Friday_Study_Visa）
-    からステータスが【READY】になっている最新の行を読み込む
+    content_ideas_sheet.csv から指定曜日の最も古い未投稿（pending / draft / READY）行を取得。
+    status == 'published' は厳格に除外（重複防止）。
     """
-    candidates = [
-        BASE_DIR / "content_ideas_sheet.xlsx",
+    csv_candidates = [
+        BASE_DIR / "02_planning" / "content_ideas_sheet.csv",
         BASE_DIR / "content_ideas_sheet.csv",
-        BASE_DIR.parent / "content_ideas_sheet.xlsx",
-        BASE_DIR / "投稿アイデア管理シート.xlsx",
-        BASE_DIR.parent / "投稿アイデア管理シート.xlsx",
-        Path("/Users/sanakamiya/Library/CloudStorage/GoogleDrive-kamiyajuku.japones@gmail.com/マイドライブ/インスタグラム/content_ideas_sheet.xlsx"),
-        Path("/Users/sanakamiya/Library/CloudStorage/GoogleDrive-kamiyajuku.japones@gmail.com/マイドライブ/インスタグラム/投稿アイデア管理シート.xlsx")
+        BASE_DIR.parent / "02_planning" / "content_ideas_sheet.csv",
+        BASE_DIR.parent / "content_ideas_sheet.csv",
+        Path("/Users/sanakamiya/Library/CloudStorage/GoogleDrive-kamiyajuku.japones@gmail.com/マイドライブ/インスタグラム/02_planning/content_ideas_sheet.csv"),
+        Path("/Users/sanakamiya/Library/CloudStorage/GoogleDrive-kamiyajuku.japones@gmail.com/マイドライブ/インスタグラム/content_ideas_sheet.csv")
     ]
-    excel_path = None
-    for p in candidates:
-        if p.exists() and p.suffix == ".xlsx":
-            excel_path = p
+
+    target_csv = None
+    for p in csv_candidates:
+        if p.exists():
+            target_csv = p
             break
 
-    if not excel_path:
-        return None
+    if target_csv:
+        try:
+            with open(target_csv, "r", encoding="utf-8") as f:
+                reader = csv.DictReader(f)
+                for row in reader:
+                    row_day = (row.get("day_of_week") or row.get("曜日") or "").strip().upper()
+                    status = (row.get("status") or row.get("ステータス") or "").strip().lower()
 
-    # 英語タブ名・日本語タブ名の両方に対応
-    tab_aliases = {
-        "LUNES": ["Monday_JLPT", "月曜_JLPT文法", "LUNES", "Monday", "月曜"],
-        "MIERCOLES": ["Wednesday_Conversation", "水曜_日常会話", "MIERCOLES", "Wednesday", "水曜"],
-        "VIERNES": ["Friday_Study_Visa", "金曜_日本留学・ビザ", "VIERNES", "Friday", "金曜"]
-    }
-    target_sheet_names = tab_aliases.get(day_key, ["Monday_JLPT", "月曜_JLPT文法"])
+                    day_match = (
+                        (day_key == "LUNES" and row_day in ["LUNES", "月曜", "MONDAY"]) or
+                        (day_key == "MIERCOLES" and row_day in ["MIERCOLES", "水曜", "WEDNESDAY"]) or
+                        (day_key == "VIERNES" and row_day in ["VIERNES", "金曜", "FRIDAY"])
+                    )
 
-    try:
-        import openpyxl
-        wb = openpyxl.load_workbook(excel_path, data_only=True)
-        ws = None
-        for name in target_sheet_names:
-            if name in wb.sheetnames:
-                ws = wb[name]
-                break
+                    if not day_match:
+                        continue
 
-        if ws is None:
-            return None
+                    # 厳格なフィルター: published の場合は絶対にスキップ
+                    if status == "published":
+                        continue
 
-        ready_row = None
-        # 5行目からデータを探索（A: No, B: ステータス, C: テーマ, D: 補足メモ）
-        for r in range(5, ws.max_row + 1):
-            status = str(ws.cell(row=r, column=2).value or "").strip().upper()
-            theme = str(ws.cell(row=r, column=3).value or "").strip()
-            memo = str(ws.cell(row=r, column=4).value or "").strip()
-            if status == "READY" and theme:
-                ready_row = {"theme": theme, "memo": memo, "row_idx": r}
-                break
+                    if status in ["pending", "draft", "ready", ""]:
+                        theme = row.get("theme") or row.get("テーマ_日本語") or ""
+                        notes = row.get("notes") or row.get("補足メモ") or ""
+                        row_id = row.get("id") or row.get("ID") or ""
 
-        if not ready_row:
-            return None
+                        if day_key == "LUNES":
+                            bg_primary, brand_deep, accent_main, accent_light, photo = "#EEF4EA", "#1B5E20", "#E8822A", "#DCEBD6", PHOTO_MONDAY
+                            tag_text = "JLPT N5 / N4 GRAMÁTICA ⛩️"
+                            dm_kw = "JLPT"
+                            dm_gift = "<b>Guía PDF de Partículas N5/N4</b> + <b>Test de Nivel</b>"
+                        elif day_key == "MIERCOLES":
+                            bg_primary, brand_deep, accent_main, accent_light, photo = "#FFFBEB", "#B45309", "#D97706", "#FEF3C7", PHOTO_WEDNESDAY
+                            tag_text = "JAPONÉS REAL 🇯🇵"
+                            dm_kw = "JAPONES"
+                            dm_gift = "<b>Guía de Expresiones Clave para Viajar a Japón</b> + <b>Audio</b>"
+                        else:
+                            bg_primary, brand_deep, accent_main, accent_light, photo = "#F0FDF4", "#15803D", "#2E7D32", "#DCFCE7", PHOTO_FRIDAY
+                            tag_text = "ESTUDIAR EN JAPÓN ✈️"
+                            dm_kw = "VISA"
+                            dm_gift = "<b>Guía Completa para Estudiar en Japón desde España</b> + <b>Asesoría</b>"
 
-        theme = ready_row["theme"]
-        memo = ready_row["memo"]
+                        if row.get("title_es"):
+                            return {
+                                "pillar": theme,
+                                "tag_text": tag_text,
+                                "bg_primary": bg_primary, "brand_deep": brand_deep, "accent_main": accent_main, "accent_light": accent_light,
+                                "student_photo": photo, "photo_position": "center 20%",
+                                "title_html": row.get("title_es", ""),
+                                "subtitle": row.get("subtitle_es", ""),
+                                "hero_left": {"char": row.get("rule1_badge", "").split()[0] if row.get("rule1_badge") else "要点1", "color": accent_main, "desc": row.get("rule1_title", "")},
+                                "hero_right": {"char": row.get("rule2_badge", "").split()[0] if row.get("rule2_badge") else "要点2", "color": brand_deep, "desc": row.get("rule2_title", "")},
+                                "rule1": {
+                                    "badge": row.get("rule1_badge", "Punto 1"),
+                                    "badge_bg": accent_main,
+                                    "title": row.get("rule1_title", ""),
+                                    "desc": row.get("rule1_desc", ""),
+                                    "ja": row.get("rule1_ja", ""),
+                                    "es": row.get("rule1_es", "")
+                                },
+                                "rule2": {
+                                    "badge": row.get("rule2_badge", "Punto 2"),
+                                    "badge_bg": brand_deep,
+                                    "title": row.get("rule2_title", ""),
+                                    "desc": row.get("rule2_desc", ""),
+                                    "ja": row.get("rule2_ja", ""),
+                                    "es": row.get("rule2_es", "")
+                                },
+                                "q1_ja": row.get("q1_ja", ""),
+                                "q1_es": row.get("q1_es", ""),
+                                "a1_text": row.get("a1_text", ""),
+                                "a1_desc": row.get("a1_desc", ""),
+                                "q2_ja": row.get("q2_ja", ""),
+                                "q2_es": row.get("q2_es", ""),
+                                "a2_text": row.get("a2_text", ""),
+                                "a2_desc": row.get("a2_desc", ""),
+                                "cheat_t1": row.get("cheat_t1", ""),
+                                "cheat_b1": row.get("cheat_b1", ""),
+                                "cheat_t2": row.get("cheat_t2", ""),
+                                "cheat_b2": row.get("cheat_b2", ""),
+                                "dm_keyword": row.get("dm_keyword", dm_kw),
+                                "dm_gift": row.get("dm_gift", dm_gift),
+                                "_row_id": row_id,
+                                "_csv_path": str(target_csv)
+                            }
 
-        # デフォルトのスタイル設定
-        if day_key == "LUNES":
-            bg_primary, brand_deep, accent_main, accent_light, photo = "#EEF4EA", "#1B5E20", "#E8822A", "#DCEBD6", PHOTO_MONDAY
-            tag_text = "JLPT N5 / N4 GRAMÁTICA ⛩️"
-            dm_kw = "JLPT"
-            dm_gift = "<b>Guía PDF de Partículas N5/N4</b> + <b>Test de Nivel</b>"
-        elif day_key == "MIERCOLES":
-            bg_primary, brand_deep, accent_main, accent_light, photo = "#FFFBEB", "#B45309", "#D97706", "#FEF3C7", PHOTO_WEDNESDAY
-            tag_text = "JAPONÉS REAL 🇯🇵"
-            dm_kw = "JAPONES"
-            dm_gift = "<b>Guía de Expresiones Clave para Viajar a Japón</b> + <b>Audio</b>"
-        else:
-            bg_primary, brand_deep, accent_main, accent_light, photo = "#F0FDF4", "#15803D", "#2E7D32", "#DCFCE7", PHOTO_FRIDAY
-            tag_text = "ESTUDIAR EN JAPÓN ✈️"
-            dm_kw = "VISA"
-            dm_gift = "<b>Guía Completa para Estudiar en Japón desde España</b> + <b>Asesoría</b>"
+                        pool = WEEKLY_CONTENT_POOL.get(day_key, [])
+                        for item in pool:
+                            if any(k in item.get("pillar", "") for k in theme.split()):
+                                res = dict(item)
+                                res["pillar"] = f"{theme}"
+                                res["_row_id"] = row_id
+                                res["_csv_path"] = str(target_csv)
+                                return res
 
-        # 既存プールの中にマッチするテーマがあればそれをベースに詳細を展開
-        pool = WEEKLY_CONTENT_POOL.get(day_key, [])
-        for item in pool:
-            if any(k in item.get("pillar", "") for k in theme.split()) or any(k in theme for k in ["は", "が", "に", "で", "ため", "よう", "だいじょうぶ", "すみません", "ビザ", "生活費"]):
-                # マッチしたテーマを返却
-                res = dict(item)
-                res["pillar"] = f"{theme}"
-                return res
+                        return {
+                            "pillar": f"{theme}",
+                            "tag_text": tag_text,
+                            "bg_primary": bg_primary, "brand_deep": brand_deep, "accent_main": accent_main, "accent_light": accent_light,
+                            "student_photo": photo, "photo_position": "center 20%",
+                            "title_html": f'Aprende <span style="color: {accent_main}; text-decoration: underline;">{theme}</span> en japonés 🇯🇵🧠',
+                            "subtitle": f"Consejos y reglas esenciales: {notes}" if notes else "Aprende la regla definitiva en 30 segundos con Kamiya Juku.",
+                            "hero_left": {"char": "重要", "color": accent_main, "desc": "Regla Clave"},
+                            "hero_right": {"char": "実践", "color": brand_deep, "desc": "Ejemplo Real"},
+                            "rule1": {
+                                "badge": "Punto 1", "badge_bg": accent_main,
+                                "title": "Regla y Uso Principal", "desc": f"Explicación para {theme}",
+                                "ja": f"{theme}の 使い方", "es": f"Uso correcto de {theme} en japonés natural."
+                            },
+                            "rule2": {
+                                "badge": "Punto 2", "badge_bg": brand_deep,
+                                "title": "Consejo y Caso Especial", "desc": notes if notes else "Ten cuidado con los errores más comunes.",
+                                "ja": f"{notes}" if notes else "自然な 日本語の 表現", "es": "Expresión natural utilizada por nativos."
+                            },
+                            "q1_ja": f"¿Cómo se usa {theme}?", "q1_es": "Elige la opción más natural en una conversación.",
+                            "q2_ja": "¿En qué situación es más adecuado?", "q2_es": "(a) Situación formal &nbsp;&nbsp; (b) Situación informal",
+                            "a1_text": "Respuesta: ¡Opción correcta!", "a1_desc": f"¡Porque se adapta a la regla de {theme}!",
+                            "a2_text": "Respuesta: (a) y (b)", "a2_desc": "¡Según el grado de cortesía y contexto!",
+                            "cheat_t1": f"💡 Regla de oro para {theme}", "cheat_b1": f"➔ {notes}" if notes else "➔ Práctica activa y lectura diaria.",
+                            "cheat_t2": "💼 ¿Quieres practicar con nativos?", "cheat_b2": "➔ Clases online en grupos reducidos de Kamiya Juku.",
+                            "dm_keyword": dm_kw,
+                            "dm_gift": dm_gift,
+                            "_row_id": row_id,
+                            "_csv_path": str(target_csv)
+                        }
+        except Exception as e:
+            print(f"⚠️ CSVキュー読み込みエラー: {e}")
 
-        # 新規テーマの場合：自動構成を組み立て
-        return {
-            "pillar": f"{theme}",
-            "tag_text": tag_text,
-            "bg_primary": bg_primary, "brand_deep": brand_deep, "accent_main": accent_main, "accent_light": accent_light,
-            "student_photo": photo, "photo_position": "center 20%",
-            "title_html": f'Aprende <span style="color: {accent_main}; text-decoration: underline;">{theme}</span> en japonés 🇯🇵🧠',
-            "subtitle": f"Consejos y reglas esenciales: {memo}" if memo else "Aprende la regla definitiva en 30 segundos con Kamiya Juku.",
-            "hero_left": {"char": "重要", "color": accent_main, "desc": "Regla Clave"},
-            "hero_right": {"char": "実践", "color": brand_deep, "desc": "Ejemplo Real"},
-            "rule1": {
-                "badge": "Punto 1", "badge_bg": accent_main,
-                "title": "Regla y Uso Principal", "desc": f"Explicación para {theme}",
-                "ja": f"{theme}の 使い方", "es": f"Uso correcto de {theme} en japonés natural."
-            },
-            "rule2": {
-                "badge": "Punto 2", "badge_bg": brand_deep,
-                "title": "Consejo y Caso Especial", "desc": memo if memo else "Ten cuidado con los errores más comunes.",
-                "ja": f"{memo}" if memo else "自然な 日本語の 表現", "es": "Expresión natural utilizada por nativos."
-            },
-            "q1_ja": f"¿Cómo se usa {theme}?", "q1_es": "Elige la opción más natural en una conversación.",
-            "q2_ja": "¿En qué situación es más adecuado?", "q2_es": "(a) Situación formal &nbsp;&nbsp; (b) Situación informal",
-            "a1_text": "Respuesta: ¡Opción correcta!", "a1_desc": f"¡Porque se adapta a la regla de {theme}!",
-            "a2_text": "Respuesta: (a) y (b)", "a2_desc": "¡Según el grado de cortesía y contexto!",
-            "cheat_t1": f"💡 Regla de oro para {theme}", "cheat_b1": f"➔ {memo}" if memo else "➔ Práctica activa y lectura diaria.",
-            "cheat_t2": "💼 ¿Quieres practicar con nativos?", "cheat_b2": "➔ Clases online en grupos reducidos de Kamiya Juku.",
-            "dm_keyword": dm_kw,
-            "dm_gift": dm_gift
-        }
+    return None
 
-    except Exception as e:
-        print(f"⚠️ Excelシート読み込みエラー: {e}")
-        return None
+def mark_post_as_published(day_key="LUNES", row_id=None, theme_name=None):
+    """
+    投稿完了後に content_ideas_sheet.csv の該当行の status を 'published' に更新し、published_at を記録
+    """
+    csv_paths = [
+        BASE_DIR / "02_planning" / "content_ideas_sheet.csv",
+        BASE_DIR / "content_ideas_sheet.csv",
+        BASE_DIR.parent / "02_planning" / "content_ideas_sheet.csv",
+        BASE_DIR.parent / "content_ideas_sheet.csv",
+        Path("/Users/sanakamiya/Library/CloudStorage/GoogleDrive-kamiyajuku.japones@gmail.com/マイドライブ/インスタグラム/02_planning/content_ideas_sheet.csv"),
+        Path("/Users/sanakamiya/Library/CloudStorage/GoogleDrive-kamiyajuku.japones@gmail.com/マイドライブ/インスタグラム/content_ideas_sheet.csv")
+    ]
+
+    now_str = datetime.now(MADRID_TZ).strftime("%Y-%m-%d %H:%M:%S")
+    updated = False
+
+    for target_csv in csv_paths:
+        if not target_csv.exists():
+            continue
+
+        try:
+            rows = []
+            fieldnames = []
+            with open(target_csv, "r", encoding="utf-8") as f:
+                reader = csv.DictReader(f)
+                fieldnames = reader.fieldnames
+                for r in reader:
+                    r_id = r.get("id") or r.get("ID")
+                    r_day = (r.get("day_of_week") or r.get("曜日") or "").strip().upper()
+                    r_theme = r.get("theme") or r.get("テーマ_日本語") or ""
+                    r_status = (r.get("status") or r.get("ステータス") or "").strip().lower()
+
+                    match = False
+                    if row_id and r_id == str(row_id):
+                        match = True
+                    elif theme_name and theme_name in r_theme and r_status != "published":
+                        match = True
+                    elif not row_id and not theme_name and r_status in ["pending", "draft", "ready"] and (
+                        (day_key == "LUNES" and r_day in ["LUNES", "月曜"]) or
+                        (day_key == "MIERCOLES" and r_day in ["MIERCOLES", "水曜"]) or
+                        (day_key == "VIERNES" and r_day in ["VIERNES", "金曜"])
+                    ):
+                        match = True
+
+                    if match and not updated:
+                        r["status"] = "published"
+                        if "published_at" in r:
+                            r["published_at"] = now_str
+                        print(f"✅ Mark as published in {target_csv.name}: ID={r_id}, Theme={r_theme}")
+                        updated = True
+
+                    rows.append(r)
+
+            with open(target_csv, "w", encoding="utf-8", newline="") as f:
+                writer = csv.DictWriter(f, fieldnames=fieldnames)
+                writer.writeheader()
+                writer.writerows(rows)
+
+        except Exception as e:
+            print(f"⚠️ Failed to update published status in {target_csv}: {e}")
+
+    return updated
 
 def get_current_week_config(day_key="LUNES", target_date=None):
     """
-    1. 投稿アイデア管理シート.csv に READY な行があればそれを最優先で読み込み
-    2. なければ週番号（日付）に基づいて自動的にプールから選択
+    1. content_ideas_sheet.csv から未投稿キュー（FIFO）を最優先で読み込み
+    2. なければ週番号に基づいてフォールバックプールから選択
     """
     sheet_config = load_config_from_sheet(day_key)
     if sheet_config:
@@ -293,7 +328,7 @@ def get_current_week_config(day_key="LUNES", target_date=None):
     pool = WEEKLY_CONTENT_POOL.get(day_key, WEEKLY_CONTENT_POOL["LUNES"])
     
     if target_date is None:
-        now = datetime.now()
+        now = datetime.now(MADRID_TZ)
         if now.weekday() in [6, 1, 3] and now.hour >= 20:
             target_date = now + timedelta(days=1)
         else:
@@ -302,11 +337,6 @@ def get_current_week_config(day_key="LUNES", target_date=None):
     current_week_num = target_date.isocalendar()[1]
     week_index = (current_week_num - 34) % len(pool)
     return pool[week_index]
-
-DAY_CONFIGS = {
-    day: get_current_week_config(day)
-    for day in ["LUNES", "MIERCOLES", "VIERNES"]
-}
 
 # ==================== 漢字ふりがな（ルビ）辞書＆自動付与エンジン ====================
 KANJI_RUBY_DICT = {
@@ -328,8 +358,6 @@ def auto_add_furigana(text: str) -> str:
     """テキスト内の漢字に自動でふりがな（<ruby>タグ）を付与"""
     if not text:
         return ""
-    import re
-    # すでにrubyタグがある場合はそのまま
     if "<ruby>" in text:
         return text
 
@@ -344,7 +372,6 @@ def auto_add_furigana(text: str) -> str:
 
 def generate_master_day_html(day_key="LUNES", target_date=None):
     raw_c = get_current_week_config(day_key, target_date=target_date)
-    # ふりがなを自動適用したコピーを作成
     c = dict(raw_c)
     if "rule1" in c and isinstance(c["rule1"], dict):
         c["rule1"] = dict(c["rule1"])
@@ -383,7 +410,7 @@ def generate_master_day_html(day_key="LUNES", target_date=None):
   * {{ box-sizing: border-box; margin: 0; padding: 0; }}
   body {{ background-color: #333; font-family: 'Montserrat', 'Noto Sans JP', sans-serif; }}
 
-  /* ふりがな（ルビ）の美しいスタイル */
+  /* ふりがな（ルビ）スタイル */
   ruby {{
     ruby-align: center;
     ruby-position: over;
@@ -412,356 +439,411 @@ def generate_master_day_html(day_key="LUNES", target_date=None):
   }}
   .logo-badge {{
     display: flex; align-items: center; gap: 14px;
-    font-weight: 900; font-size: 28px; color: var(--brand-deep);
+    font-weight: 900; font-size: 24px; color: var(--brand-deep);
   }}
-  .logo-badge img {{ width: 50px; height: 50px; object-fit: contain; }}
-  .slide-counter {{
-    background: #FFFFFF; border: 1px solid rgba(0,0,0,0.08);
-    padding: 8px 24px; border-radius: 20px;
-    font-size: 24px; font-weight: 900; color: var(--brand-deep);
+  .logo-badge img {{
+    height: 48px; width: auto; object-fit: contain;
+  }}
+  .category-pill {{
+    background: var(--bg-card); color: var(--brand-deep);
+    padding: 8px 22px; border-radius: 50px; font-size: 17px; font-weight: 800;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.04); letter-spacing: 1px;
   }}
 
   /* フッター */
   .slide-footer {{
     display: flex; justify-content: space-between; align-items: center;
-    border-top: 2px solid rgba(0,0,0,0.08); padding-top: 22px;
-    font-size: 24px; font-weight: 700; color: var(--text-muted);
+    border-top: 2px solid rgba(0,0,0,0.08); padding-top: 20px;
+    font-size: 20px; font-weight: 800; color: var(--text-muted);
   }}
-  .swipe-cta {{
-    display: flex; align-items: center; gap: 12px;
-    color: var(--brand-deep); font-weight: 800; font-size: 26px;
+  .swipe-indicator {{
+    display: flex; align-items: center; gap: 10px; color: var(--brand-deep);
+    animation: bounce 1.5s infinite;
   }}
-
-  /* ルビ（ふりがな） */
-  ruby {{ ruby-position: over; }}
-  rt {{ font-size: 0.52em; color: var(--brand-deep); font-weight: 800; transform: translateY(-3px); }}
-
-  /* タグバッジ */
-  .tag-chip {{
-    display: inline-block; background: var(--brand-deep);
-    color: #FFF; font-size: 22px; font-weight: 900;
-    padding: 10px 24px; border-radius: 14px; margin-bottom: 24px; letter-spacing: 0.5px;
+  @keyframes bounce {{
+    0%, 100% {{ transform: translateX(0); }}
+    50% {{ transform: translateX(8px); }}
   }}
 
-  /* 表紙の対比ヒーローボックス */
-  .cover-hero-box {{
-    margin-top: 40px; background: #FFF; border-radius: var(--border-radius);
-    padding: 44px; display: flex; justify-content: space-around; align-items: center;
-    box-shadow: var(--card-shadow); border: 2px solid rgba(0,0,0,0.06);
+  /* 共通カード */
+  .content-card {{
+    background: var(--bg-card); border-radius: var(--border-radius);
+    padding: 44px; box-shadow: var(--card-shadow); border: 2px solid rgba(0,0,0,0.03);
   }}
-  .hero-item {{ text-align: center; }}
-  .hero-char {{ font-size: { '76px' if len(c['hero_left']['char']) > 3 else '110px' }; font-weight: 900; line-height: 1; margin-bottom: 12px; }}
-  .hero-vs {{ font-size: 40px; font-weight: 900; color: var(--accent-main); }}
 
-  /* ルールカード */
+  /* スライド1: 表紙 */
+  .cover-title {{
+    font-size: 54px; font-weight: 900; line-height: 1.25; color: var(--text-main);
+    margin-bottom: 20px;
+  }}
+  .cover-subtitle {{
+    font-size: 25px; font-weight: 600; color: var(--text-muted); line-height: 1.45;
+  }}
+  .hero-box {{
+    display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin: 35px 0;
+  }}
+  .hero-card {{
+    background: var(--bg-card); border-radius: var(--border-radius);
+    padding: 35px 25px; text-align: center; box-shadow: var(--card-shadow);
+  }}
+  .hero-kanji {{
+    font-size: 88px; font-weight: 900; line-height: 1; margin-bottom: 12px;
+  }}
+  .hero-desc {{
+    font-size: 21px; font-weight: 800; color: var(--text-muted);
+  }}
+
+  /* スライド2: ルール解説 */
   .rule-card {{
-    background: #FFF; border-radius: 28px; padding: 38px 44px;
-    box-shadow: var(--card-shadow); border-left: 14px solid var(--accent-main);
-    margin-bottom: 28px;
+    background: var(--bg-card); border-radius: var(--border-radius);
+    padding: 38px 44px; margin-bottom: 28px; box-shadow: var(--card-shadow);
   }}
-  .rule-card.rule-second {{ border-left-color: var(--brand-deep); }}
   .rule-badge {{
-    font-size: 30px; font-weight: 900; color: #FFF;
-    background: var(--accent-main); padding: 6px 20px; border-radius: 12px;
+    display: inline-block; padding: 6px 18px; border-radius: 12px;
+    color: #FFF; font-weight: 900; font-size: 20px; margin-bottom: 14px;
   }}
-  .rule-second .rule-badge {{ background: var(--brand-deep); }}
+  .rule-title {{
+    font-size: 30px; font-weight: 900; color: var(--text-main); margin-bottom: 10px;
+  }}
+  .rule-desc {{
+    font-size: 22px; color: var(--text-muted); line-height: 1.4; margin-bottom: 18px;
+  }}
   .example-box {{
-    background: #F8FAF7; border-radius: 18px; padding: 20px 26px;
-    margin-top: 16px; border: 1px solid rgba(0,0,0,0.06);
+    background: var(--bg-primary); border-radius: 18px; padding: 20px 24px;
+    border-left: 6px solid var(--brand-deep);
   }}
-  .example-ja {{ font-size: 38px; font-weight: 800; color: var(--text-main); margin-bottom: 8px; }}
-  .example-es {{ font-size: 26px; font-weight: 600; color: var(--text-muted); }}
+  .example-ja {{
+    font-size: 30px; font-weight: 900; color: var(--text-main); margin-bottom: 6px;
+  }}
+  .example-es {{
+    font-size: 20px; font-weight: 600; color: var(--text-muted);
+  }}
 
-  /* クイズカード */
+  /* スライド3: クイズ */
   .quiz-card {{
-    background: #FFF; border-radius: 28px; padding: 40px;
-    margin-bottom: 24px; box-shadow: var(--card-shadow);
-    border: 1px solid rgba(0,0,0,0.06);
+    background: var(--bg-card); border-radius: var(--border-radius);
+    padding: 36px 42px; margin-bottom: 24px; box-shadow: var(--card-shadow);
+  }}
+  .quiz-q {{
+    font-size: 30px; font-weight: 900; color: var(--text-main); margin-bottom: 8px; line-height: 1.35;
+  }}
+  .quiz-sub {{
+    font-size: 21px; font-weight: 600; color: var(--text-muted); margin-bottom: 16px;
+  }}
+  .quiz-options {{
+    display: flex; gap: 16px;
+  }}
+  .quiz-opt {{
+    flex: 1; background: var(--bg-primary); padding: 18px; border-radius: 16px;
+    text-align: center; font-size: 26px; font-weight: 900; color: var(--brand-deep);
+    border: 2px dashed rgba(0,0,0,0.15);
   }}
 
-  /* 最終スライド（生徒写真＋連絡先CTA） */
-  .cta-student-card {{
-    background: #FFFFFF; border-radius: var(--border-radius);
-    padding: 34px 40px; box-shadow: var(--card-shadow);
-    border: 2px solid rgba(0,0,0,0.06);
+  /* スライド4: クイズ正解 */
+  .ans-card {{
+    background: var(--bg-card); border-radius: var(--border-radius);
+    padding: 36px 42px; margin-bottom: 24px; box-shadow: var(--card-shadow);
+    border-left: 8px solid var(--accent-main);
   }}
-  .student-photo-banner {{
-    width: 100%; height: 260px; border-radius: 20px;
-    object-fit: cover; object-position: {c['photo_position']};
-    margin-bottom: 22px; box-shadow: 0 8px 20px rgba(0,0,0,0.12);
+  .ans-header {{
+    display: flex; align-items: center; gap: 12px; margin-bottom: 10px;
   }}
-  .contact-badge-box {{
-    display: flex; justify-content: space-around; background: #F8FAF7;
-    border-radius: 16px; padding: 18px 20px; margin-top: 18px;
-    font-size: 21px; font-weight: 800; color: var(--text-main);
+  .ans-badge {{
+    background: var(--accent-main); color: #FFF; padding: 4px 14px;
+    border-radius: 8px; font-size: 18px; font-weight: 900;
+  }}
+  .ans-text {{
+    font-size: 30px; font-weight: 900; color: var(--text-main);
+  }}
+  .ans-desc {{
+    font-size: 22px; color: var(--text-muted); line-height: 1.45; margin-top: 10px;
+  }}
+
+  /* スライド5: チートシート */
+  .cheat-container {{
+    background: var(--bg-card); border-radius: var(--border-radius);
+    padding: 44px; box-shadow: var(--card-shadow); margin-bottom: 20px;
+  }}
+  .cheat-row {{
+    margin-bottom: 30px; padding-bottom: 25px; border-bottom: 2px dashed rgba(0,0,0,0.08);
+  }}
+  .cheat-row:last-child {{ margin-bottom: 0; padding-bottom: 0; border-bottom: none; }}
+  .cheat-q {{
+    font-size: 26px; font-weight: 800; color: var(--text-muted); margin-bottom: 10px;
+  }}
+  .cheat-a {{
+    font-size: 36px; font-weight: 900; color: var(--text-main); line-height: 1.3;
+  }}
+
+  /* スライド6: 最終CTA & 生徒写真 */
+  .cta-container {{
+    display: flex; flex-direction: column; height: 100%; justify-content: space-between;
+  }}
+  .photo-frame {{
+    width: 100%; height: 520px; border-radius: var(--border-radius);
+    overflow: hidden; box-shadow: var(--card-shadow); position: relative;
+  }}
+  .photo-frame img {{
+    width: 100%; height: 100%; object-fit: cover; object-position: {c['photo_position']};
+  }}
+  .photo-overlay {{
+    position: absolute; bottom: 0; left: 0; right: 0;
+    background: linear-gradient(transparent, rgba(0,0,0,0.7));
+    padding: 30px; color: #FFF; font-size: 24px; font-weight: 800;
+  }}
+  .cta-card {{
+    background: var(--bg-card); border-radius: var(--border-radius);
+    padding: 40px; box-shadow: var(--card-shadow); text-align: center;
+    border: 3px solid var(--accent-main);
+  }}
+  .cta-title {{
+    font-size: 34px; font-weight: 900; color: var(--text-main); margin-bottom: 12px;
+  }}
+  .cta-sub {{
+    font-size: 22px; font-weight: 600; color: var(--text-muted); margin-bottom: 24px; line-height: 1.4;
+  }}
+  .cta-badge {{
+    display: inline-block; background: var(--accent-main); color: #FFF;
+    font-size: 30px; font-weight: 900; padding: 14px 38px; border-radius: 50px;
+    letter-spacing: 1px; box-shadow: 0 10px 24px rgba(232, 130, 42, 0.35);
   }}
 </style>
 </head>
 <body>
 
-  <!-- ==================== Slide 1: 表紙 ==================== -->
-  <div class="slide" id="slide-1">
-    <div class="slide-header">
-      <div class="logo-badge">
-        <img src="file://{LOGO_PATH}">
-        <span>KAMIYA JUKU <small style="font-size: 18px; font-weight: normal; color: #718096;">神谷塾</small></span>
-      </div>
-      <div class="slide-counter">1 / 6</div>
+<!-- SLIDE 1: Cover -->
+<div class="slide" id="slide-1">
+  <div class="slide-header">
+    <div class="logo-badge">
+      <img src="file://{LOGO_PATH.resolve()}" alt="Logo">
+      <span>神谷塾 KAMIYA JUKU</span>
     </div>
-    
-    <div>
-      <div class="tag-chip">{c['tag_text']}</div>
-      <h1 style="font-size: 60px; font-weight: 900; line-height: 1.18; color: var(--text-main); margin-bottom: 18px;">
-        {c['title_html']}
-      </h1>
-      <p style="font-size: 32px; font-weight: 700; color: var(--text-muted); line-height: 1.4;">
-        {c['subtitle']}
-      </p>
+    <div class="category-pill">{c['tag_text']}</div>
+  </div>
 
-      <div class="cover-hero-box">
-        <div class="hero-item">
-          <div class="hero-char" style="color: {c['hero_left']['color']};">{c['hero_left']['char']}</div>
-          <div style="font-size: 26px; font-weight: 800; color: var(--text-muted);">{c['hero_left']['desc']}</div>
-        </div>
-        <div class="hero-vs">VS</div>
-        <div class="hero-item">
-          <div class="hero-char" style="color: {c['hero_right']['color']};">{c['hero_right']['char']}</div>
-          <div style="font-size: 26px; font-weight: 800; color: var(--text-muted);">{c['hero_right']['desc']}</div>
-        </div>
+  <div>
+    <h1 class="cover-title">{c['title_html']}</h1>
+    <p class="cover-subtitle">{c['subtitle']}</p>
+    <div class="hero-box">
+      <div class="hero-card">
+        <div class="hero-kanji" style="color: {c['hero_left']['color']};">{c['hero_left']['char']}</div>
+        <div class="hero-desc">{c['hero_left']['desc']}</div>
       </div>
-    </div>
-
-    <div class="slide-footer">
-      <div>@japones_kamiyajuku</div>
-      <div class="swipe-cta">Desliza para ver la regla 👉</div>
+      <div class="hero-card">
+        <div class="hero-kanji" style="color: {c['hero_right']['color']};">{c['hero_right']['char']}</div>
+        <div class="hero-desc">{c['hero_right']['desc']}</div>
+      </div>
     </div>
   </div>
 
-  <!-- ==================== Slide 2: ルール解説 ==================== -->
-  <div class="slide" id="slide-2">
-    <div class="slide-header">
-      <div class="logo-badge">
-        <img src="file://{LOGO_PATH}">
-        <span>KAMIYA JUKU <small style="font-size: 18px; font-weight: normal; color: #718096;">神谷塾</small></span>
-      </div>
-      <div class="slide-counter">2 / 6</div>
+  <div class="slide-footer">
+    <span>Desliza para ver la regla 👉</span>
+    <div class="swipe-indicator">1 / 6</div>
+  </div>
+</div>
+
+<!-- SLIDE 2: Reglas -->
+<div class="slide" id="slide-2">
+  <div class="slide-header">
+    <div class="logo-badge">
+      <img src="file://{LOGO_PATH.resolve()}" alt="Logo">
+      <span>神谷塾 REGLAS CLAVE</span>
     </div>
+    <div class="category-pill">{c['tag_text']}</div>
+  </div>
 
-    <div>
-      <div class="rule-card">
-        <div style="display: flex; align-items: center; gap: 16px; margin-bottom: 12px;">
-          <div class="rule-badge" style="background: {c['rule1']['badge_bg']};">{c['rule1']['badge']}</div>
-          <div style="font-size: 32px; font-weight: 900; color: var(--text-main);">{c['rule1']['title']}</div>
-        </div>
-        <p style="font-size: 26px; color: var(--text-muted); font-weight: 600;">{c['rule1']['desc']}</p>
-        <div class="example-box">
-          <div class="example-ja">{c['rule1']['ja']}</div>
-          <div class="example-es">{c['rule1']['es']}</div>
-        </div>
-      </div>
-
-      <div class="rule-card rule-second">
-        <div style="display: flex; align-items: center; gap: 16px; margin-bottom: 12px;">
-          <div class="rule-badge" style="background: {c['rule2']['badge_bg']};">{c['rule2']['badge']}</div>
-          <div style="font-size: 32px; font-weight: 900; color: var(--text-main);">{c['rule2']['title']}</div>
-        </div>
-        <p style="font-size: 26px; color: var(--text-muted); font-weight: 600;">{c['rule2']['desc']}</p>
-        <div class="example-box">
-          <div class="example-ja">{c['rule2']['ja']}</div>
-          <div class="example-es">{c['rule2']['es']}</div>
-        </div>
+  <div>
+    <div class="rule-card">
+      <div class="rule-badge" style="background: {c['rule1']['badge_bg']};">{c['rule1']['badge']}</div>
+      <div class="rule-title">{c['rule1']['title']}</div>
+      <div class="rule-desc">{c['rule1']['desc']}</div>
+      <div class="example-box">
+        <div class="example-ja">{c['rule1']['ja']}</div>
+        <div class="example-es">{c['rule1']['es']}</div>
       </div>
     </div>
 
-    <div class="slide-footer">
-      <div>@japones_kamiyajuku</div>
-      <div class="swipe-cta">¡Ponte a prueba en el quiz! 👉</div>
+    <div class="rule-card">
+      <div class="rule-badge" style="background: {c['rule2']['badge_bg']};">{c['rule2']['badge']}</div>
+      <div class="rule-title">{c['rule2']['title']}</div>
+      <div class="rule-desc">{c['rule2']['desc']}</div>
+      <div class="example-box" style="border-left-color: {c['brand_deep']};">
+        <div class="example-ja">{c['rule2']['ja']}</div>
+        <div class="example-es">{c['rule2']['es']}</div>
+      </div>
     </div>
   </div>
 
-  <!-- ==================== Slide 3: クイズ問題 ==================== -->
-  <div class="slide" id="slide-3">
-    <div class="slide-header">
-      <div class="logo-badge">
-        <img src="file://{LOGO_PATH}">
-        <span>KAMIYA JUKU <small style="font-size: 18px; font-weight: normal; color: #718096;">神谷塾</small></span>
-      </div>
-      <div class="slide-counter">3 / 6</div>
+  <div class="slide-footer">
+    <span>¿Lo has entendido? ¡Ponte a prueba! 👉</span>
+    <div class="swipe-indicator">2 / 6</div>
+  </div>
+</div>
+
+<!-- SLIDE 3: Quiz -->
+<div class="slide" id="slide-3">
+  <div class="slide-header">
+    <div class="logo-badge">
+      <img src="file://{LOGO_PATH.resolve()}" alt="Logo">
+      <span>神谷塾 MINI QUIZ</span>
     </div>
+    <div class="category-pill">TEST RÁPIDO ✍️</div>
+  </div>
 
-    <div>
-      <div class="tag-chip">MINI QUIZ 神谷塾</div>
-      <h2 style="font-size: 42px; font-weight: 900; color: var(--brand-deep); margin-bottom: 28px;">
-        ¿Cuál es la opción correcta? 🤔✍️
-      </h2>
-      
-      <div class="quiz-card" style="padding: 42px 38px;">
-        <div style="font-size: 36px; font-weight: 900; color: var(--brand-deep); margin-bottom: 12px;">
-          ❓ <strong>Q1:</strong> {c['q1_ja']}
-        </div>
-        <p style="font-size: 24px; color: var(--text-muted); font-weight: 600;">{c['q1_es']}</p>
-      </div>
-
-      <div class="quiz-card" style="padding: 42px 38px;">
-        <div style="font-size: 36px; font-weight: 900; color: var(--brand-deep); margin-bottom: 12px;">
-          ❓ <strong>Q2:</strong> {c['q2_ja']}
-        </div>
-        <p style="font-size: 24px; color: var(--text-muted); font-weight: 600;">{c['q2_es']}</p>
+  <div>
+    <div class="quiz-card">
+      <div class="quiz-q">Q1. {c['q1_ja']}</div>
+      <div class="quiz-sub">{c['q1_es']}</div>
+      <div class="quiz-options">
+        <div class="quiz-opt">A</div>
+        <div class="quiz-opt">B</div>
       </div>
     </div>
 
-    <div class="slide-footer">
-      <div>@japones_kamiyajuku</div>
-      <div class="swipe-cta">🤔 ¿Tienes tu respuesta? ¡Desliza! 👉</div>
+    <div class="quiz-card">
+      <div class="quiz-q">Q2. {c['q2_ja']}</div>
+      <div class="quiz-sub">{c['q2_es']}</div>
+      <div class="quiz-options">
+        <div class="quiz-opt">A</div>
+        <div class="quiz-opt">B</div>
+      </div>
     </div>
   </div>
 
-  <!-- ==================== Slide 4: 解答と解説 ==================== -->
-  <div class="slide" id="slide-4">
-    <div class="slide-header">
-      <div class="logo-badge">
-        <img src="file://{LOGO_PATH}">
-        <span>KAMIYA JUKU <small style="font-size: 18px; font-weight: normal; color: #718096;">神谷塾</small></span>
+  <div class="slide-footer">
+    <span>Comprueba tus respuestas 👉</span>
+    <div class="swipe-indicator">3 / 6</div>
+  </div>
+</div>
+
+<!-- SLIDE 4: Respuestas -->
+<div class="slide" id="slide-4">
+  <div class="slide-header">
+    <div class="logo-badge">
+      <img src="file://{LOGO_PATH.resolve()}" alt="Logo">
+      <span>神谷塾 RESPUESTAS</span>
+    </div>
+    <div class="category-pill">SOLUCIÓN 🎯</div>
+  </div>
+
+  <div>
+    <div class="ans-card" style="border-left-color: {c['accent_main']};">
+      <div class="ans-header">
+        <span class="ans-badge" style="background: {c['accent_main']};">Q1</span>
+        <span class="ans-text">{c['a1_text']}</span>
       </div>
-      <div class="slide-counter">4 / 6</div>
+      <div class="ans-desc">{c['a1_desc']}</div>
     </div>
 
-    <div>
-      <div class="tag-chip">RESPUESTAS & EXPLICACIÓN</div>
-      
-      <div class="quiz-card" style="border-left: 14px solid var(--brand-deep);">
-        <div style="font-size: 28px; font-weight: 800; color: var(--text-muted); margin-bottom: 10px;">
-          Q1: {c['q1_ja']}
-        </div>
-        <div style="background: {c['accent_light']}; padding: 20px 24px; border-radius: 16px;">
-          <div style="font-size: 30px; font-weight: 900; color: var(--brand-deep);">✅ {c['a1_text']}</div>
-          <div style="font-size: 24px; color: var(--brand-deep); font-weight: 700; margin-top: 6px;">
-            {c['a1_desc']}
-          </div>
-        </div>
+    <div class="ans-card" style="border-left-color: {c['brand_deep']};">
+      <div class="ans-header">
+        <span class="ans-badge" style="background: {c['brand_deep']};">Q2</span>
+        <span class="ans-text">{c['a2_text']}</span>
       </div>
-
-      <div class="quiz-card" style="border-left: 14px solid var(--accent-main); margin-top: 24px;">
-        <div style="font-size: 28px; font-weight: 800; color: var(--text-muted); margin-bottom: 10px;">
-          Q2: {c['q2_ja']}
-        </div>
-        <div style="background: #FFF4E8; padding: 20px 24px; border-radius: 16px;">
-          <div style="font-size: 30px; font-weight: 900; color: #C05621;">✅ {c['a2_text']}</div>
-          <div style="font-size: 24px; color: #7B341E; font-weight: 700; margin-top: 6px;">
-            {c['a2_desc']}
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <div class="slide-footer">
-      <div>@japones_kamiyajuku</div>
-      <div class="swipe-cta">Resumen rápido para memorizar 👉</div>
+      <div class="ans-desc">{c['a2_desc']}</div>
     </div>
   </div>
 
-  <!-- ==================== Slide 5: チートシート ==================== -->
-  <div class="slide" id="slide-5">
-    <div class="slide-header">
-      <div class="logo-badge">
-        <img src="file://{LOGO_PATH}">
-        <span>KAMIYA JUKU <small style="font-size: 18px; font-weight: normal; color: #718096;">神谷塾</small></span>
-      </div>
-      <div class="slide-counter">5 / 6</div>
+  <div class="slide-footer">
+    <span>Guarda el resumen en la siguiente 👉</span>
+    <div class="swipe-indicator">4 / 6</div>
+  </div>
+</div>
+
+<!-- SLIDE 5: Cheat Sheet -->
+<div class="slide" id="slide-5">
+  <div class="slide-header">
+    <div class="logo-badge">
+      <img src="file://{LOGO_PATH.resolve()}" alt="Logo">
+      <span>神谷塾 RESUMEN RÁPIDO</span>
     </div>
+    <div class="category-pill">CHEAT SHEET 📌</div>
+  </div>
 
-    <div class="quiz-card" style="padding: 48px;">
-      <h2 style="font-size: 44px; font-weight: 900; color: var(--brand-deep); margin-bottom: 28px;">
-        🧠 Truco Rápido de Kamiya Juku:
-      </h2>
-      
-      <div style="display: flex; flex-direction: column; gap: 28px; font-size: 26px;">
-        <div style="background: #FFF9F2; padding: 28px; border-radius: 20px; border-left: 12px solid var(--accent-main);">
-          <strong style="font-size: 28px;">{c['cheat_t1']}</strong><br>
-          {c['cheat_b1']}
-        </div>
-
-        <div style="background: #F4FAF2; padding: 28px; border-radius: 20px; border-left: 12px solid var(--brand-deep);">
-          <strong style="font-size: 28px;">{c['cheat_t2']}</strong><br>
-          {c['cheat_b2']}
-        </div>
-      </div>
+  <div class="cheat-container">
+    <div class="cheat-row">
+      <div class="cheat-q">{c['cheat_t1']}</div>
+      <div class="cheat-a">{c['cheat_b1']}</div>
     </div>
-
-    <div class="slide-footer">
-      <div>@japones_kamiyajuku</div>
-      <div class="swipe-cta">¡Regalo exclusivo en el siguiente! 👉</div>
+    <div class="cheat-row">
+      <div class="cheat-q">{c['cheat_t2']}</div>
+      <div class="cheat-a">{c['cheat_b2']}</div>
     </div>
   </div>
 
-  <!-- ==================== Slide 6: 生徒写真＋WhatsApp/メール連絡先CTA ==================== -->
-  <div class="slide" id="slide-6">
-    <div class="slide-header">
-      <div class="logo-badge">
-        <img src="file://{LOGO_PATH}">
-        <span>KAMIYA JUKU <small style="font-size: 18px; font-weight: normal; color: #718096;">神谷塾</small></span>
-      </div>
-      <div class="slide-counter">6 / 6</div>
+  <div class="slide-footer">
+    <span>🎁 Regalo exclusivo en la última 👉</span>
+    <div class="swipe-indicator">5 / 6</div>
+  </div>
+</div>
+
+<!-- SLIDE 6: CTA & Foto Real -->
+<div class="slide" id="slide-6">
+  <div class="slide-header">
+    <div class="logo-badge">
+      <img src="file://{LOGO_PATH.resolve()}" alt="Logo">
+      <span>神谷塾 COMUNIDAD</span>
     </div>
+    <div class="category-pill">REGALO GRATIS 🎁</div>
+  </div>
 
-    <div class="cta-student-card">
-      <img class="student-photo-banner" src="file://{c['student_photo']}" alt="Estudiantes de Kamiya Juku">
-      
-      <div style="text-align: center;">
-        <h2 style="font-size: 38px; font-weight: 900; color: var(--brand-deep); margin-bottom: 10px;">
-          ¿Quieres dominar el japonés este año? 🎓🇯🇵
-        </h2>
-        <p style="font-size: 23px; color: var(--text-muted); font-weight: 600; margin-bottom: 16px;">
-          Aprende con profesores nativos en clases particulares online & grupos reducidos.
-        </p>
-
-        <div style="background: {c['bg_primary']}; border: 2px solid var(--brand-deep); border-radius: 20px; padding: 20px; margin-bottom: 16px;">
-          <p style="font-size: 19px; font-weight: 800; color: var(--brand-deep); letter-spacing: 1px;">ENVÍA UN DM CON LA PALABRA</p>
-          <div style="font-size: 52px; font-weight: 900; color: var(--accent-main); margin: 4px 0;">"{c['dm_keyword']}"</div>
-          <p style="font-size: 19px; color: var(--text-muted); font-weight: 700;">y recibe nuestra {c['dm_gift']}</p>
-        </div>
-
-        <div class="contact-badge-box">
-          <div>📱 WhatsApp: <b>+34 682 054 654</b></div>
-          <div>✉️ Email: <b>info@kamiyajuku.com</b></div>
-        </div>
+  <div class="cta-container" style="margin: 25px 0;">
+    <div class="photo-frame">
+      <img src="file://{c['student_photo'].resolve()}" alt="Estudiantes de Kamiya Juku">
+      <div class="photo-overlay">
+        ⛩️ Academia de Japonés en Barcelona & Online
       </div>
     </div>
 
-    <div class="slide-footer">
-      <div>@japones_kamiyajuku</div>
-      <div style="color: var(--brand-deep); font-weight: 800;">¡Síguenos y guarda este post! 🔖</div>
+    <div class="cta-card">
+      <div class="cta-title">¿Quieres dominar el japonés real?</div>
+      <div class="cta-sub">
+        Envía un DM con la palabra <strong>"{c['dm_keyword']}"</strong> para recibir nuestra {c['dm_gift']} gratis.
+      </div>
+      <div class="cta-badge">📩 DM "{c['dm_keyword']}"</div>
     </div>
   </div>
+
+  <div class="slide-footer">
+    <span>⛩️ @japones_kamiyajuku</span>
+    <div class="swipe-indicator">6 / 6</div>
+  </div>
+</div>
 
 </body>
 </html>
 """
     return html
 
-async def render_day_carousel(day_key="LUNES"):
-    html_code = generate_master_day_html(day_key)
-    temp_html = ASSETS_DIR / f"temp_master_{day_key}.html"
-    with open(temp_html, "w", encoding="utf-8") as f:
-        f.write(html_code)
+async def render_day_carousel(day_key="LUNES", target_date=None):
+    html_content = generate_master_day_html(day_key, target_date=target_date)
+    temp_html_path = ASSETS_DIR / f"temp_master_{day_key}.html"
+    
+    with open(temp_html_path, "w", encoding="utf-8") as f:
+        f.write(html_content)
 
     output_paths = []
     async with async_playwright() as p:
         browser = await p.chromium.launch(headless=True)
         page = await browser.new_page(viewport={"width": 1080, "height": 1350}, device_scale_factor=2)
-        await page.goto(f"file://{temp_html.resolve()}", wait_until="networkidle")
+        
+        await page.goto(f"file://{temp_html_path.resolve()}", wait_until="networkidle")
+        await page.wait_for_timeout(1000)
 
         for i in range(1, 7):
-            el = await page.query_selector(f"#slide-{i}")
-            if el:
-                out_p = str(ASSETS_DIR / f"master_slide_{day_key}_{i}.jpg")
-                await el.screenshot(path=out_p, type="jpeg", quality=95)
-                output_paths.append(out_p)
+            slide_elem = page.locator(f"#slide-{i}")
+            out_file = ASSETS_DIR / f"master_slide_{day_key}_{i}.jpg"
+            await slide_elem.screenshot(path=str(out_file), type="jpeg", quality=95)
+            output_paths.append(str(out_file))
+
         await browser.close()
+
     return output_paths
 
 if __name__ == "__main__":
     for d in ["LUNES", "MIERCOLES", "VIERNES"]:
-        print(f"🚀 【{d}】カルーセル生成中...")
-        slides = asyncio.run(render_day_carousel(d))
-        print(f"✅ 【{d}】完了: {len(slides)} 枚")
+        cfg = get_current_week_config(d)
+        print(f"=== {d} Config ===")
+        print("  Pillar:", cfg.get("pillar"))
+        print("  Row ID:", cfg.get("_row_id"))
+        print("  CSV:", cfg.get("_csv_path"))

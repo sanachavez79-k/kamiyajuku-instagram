@@ -202,13 +202,22 @@ class KamiyajukuAutonomousScheduler:
 
         slide_paths, caption = self.generate_day_content_and_slides(day_key)
 
+        from render_master_carousel import mark_post_as_published, get_current_week_config
+        c = get_current_week_config(day_key)
+        row_id = c.get("_row_id")
+        theme_name = c.get("pillar")
+
         print(f"🚀 Instagram公式アカウントへ本番投稿中: 【{day_key}】")
         pub_res = self.instagram.publish_carousel_post(slide_paths, caption)
         media_id = pub_res.get("id", pub_res.get("post_id", "N/A"))
 
+        # 投稿完了後にキュー管理シートのステータスを published に自動更新
+        mark_post_as_published(day_key=day_key, row_id=row_id, theme_name=theme_name)
+
         self.telegram.send_message(
             f"🎉 <b>【Instagram自動公開完了！】</b>\n\n"
             f"本日（{day_key}）のカルーセル投稿が正常に公開されました！✨\n"
+            f"📌 テーマ: <b>{theme_name}</b>\n"
             f"🔗 <b>Media ID</b>: <code>{media_id}</code>\n"
             f"📱 Instagramアプリ（@japones_kamiyajuku）でご確認ください！"
         )
