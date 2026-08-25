@@ -2,6 +2,8 @@ name: ⛩️ Kamiya Juku Instagram Automation
 
 on:
   schedule:
+    # 毎週日曜日 09:00 CEST (UTC 07:00): 週次インサイト分析＆新規企画自動補充 (PDCA)
+    - cron: '0 7 * * 0'
     # 前日 12:00 CEST (UTC 10:00): 日・火・木 にプレビュー配信
     - cron: '0 10 * * 0,2,4'
     # 当日 18:00 CEST (UTC 16:00): 月・水・金 に本番自動投稿
@@ -16,6 +18,7 @@ on:
         options:
           - 'eve_preview'
           - 'publish_today'
+          - 'weekly_pdca'
           - 'preview_lunes'
           - 'preview_miercoles'
           - 'preview_viernes'
@@ -61,7 +64,9 @@ jobs:
         run: |
           if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
             ACTION="${{ github.event.inputs.action }}"
-            if [ "$ACTION" = "eve_preview" ]; then
+            if [ "$ACTION" = "weekly_pdca" ]; then
+              python weekly_pdca_pipeline.py
+            elif [ "$ACTION" = "eve_preview" ]; then
               python autonomous_scheduler.py eve_preview
             elif [ "$ACTION" = "publish_today" ]; then
               python autonomous_scheduler.py publish_today
@@ -79,9 +84,14 @@ jobs:
               python autonomous_scheduler.py publish VIERNES
             fi
           else
-            # 定期Cron実行時（UTC 10:00 = スペイン12:00前日プレビュー, UTC 16:00 = スペイン18:00当日投稿）
+            # 定期Cron実行時
             CURRENT_HOUR=$(date -u +%H)
-            if [ "$CURRENT_HOUR" -lt 14 ]; then
+            DAY_OF_WEEK=$(date -u +%u) # 1: Mon, ..., 7: Sun
+
+            if [ "$DAY_OF_WEEK" -eq 7 ] && [ "$CURRENT_HOUR" -lt 9 ]; then
+              echo "📈 日曜朝09:00 週次インサイト分析＆新規企画補充 (PDCA) を実行します..."
+              python weekly_pdca_pipeline.py
+            elif [ "$CURRENT_HOUR" -lt 14 ]; then
               echo "☀️ 前日12:00 プレビュー配信を実行します..."
               python autonomous_scheduler.py eve_preview
             else
@@ -90,15 +100,15 @@ jobs:
             fi
           fi
 
-      - name: 🔄 ステータス更新（CSV/XLSX）のコミット＆プッシュ
+      - name: 🔄 ステータス更新・新規企画・レポートのコミット＆プッシュ
         if: always()
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add 02_planning/content_ideas_sheet.xlsx 02_planning/content_ideas_sheet.csv 2>/dev/null || true
+          git add 01_analysis/ 02_planning/ 2>/dev/null || true
           if git diff --staged --quiet; then
-            echo "ℹ️ No changes in content_ideas_sheet to commit."
+            echo "ℹ️ No changes to commit."
           else
-            git commit -m "chore: auto-update content queue status (published)"
+            git commit -m "chore: auto-sync PDCA weekly report and replenished ideas"
             git push origin main || true
           fi
