@@ -2,8 +2,8 @@ name: ⛩️ Kamiya Juku Instagram Automation
 
 on:
   schedule:
-    # 前夜 21:00 CEST (UTC 19:00): 日・火・木 にプレビュー配信
-    - cron: '0 19 * * 0,2,4'
+    # 前日 12:00 CEST (UTC 10:00): 日・火・木 にプレビュー配信
+    - cron: '0 10 * * 0,2,4'
     # 当日 18:00 CEST (UTC 16:00): 月・水・金 に本番自動投稿
     - cron: '0 16 * * 1,3,5'
   workflow_dispatch:
@@ -79,24 +79,25 @@ jobs:
               python autonomous_scheduler.py publish VIERNES
             fi
           else
+            # 定期Cron実行時（UTC 10:00 = スペイン12:00前日プレビュー, UTC 16:00 = スペイン18:00当日投稿）
             CURRENT_HOUR=$(date -u +%H)
-            if [ "$CURRENT_HOUR" -ge 18 ]; then
-              echo "🌙 前夜プレビュー配信を実行します..."
+            if [ "$CURRENT_HOUR" -lt 14 ]; then
+              echo "☀️ 前日12:00 プレビュー配信を実行します..."
               python autonomous_scheduler.py eve_preview
             else
-              echo "🚀 当日Instagram本番投稿を実行します..."
+              echo "🚀 当日18:00 Instagram本番投稿を実行します..."
               python autonomous_scheduler.py publish_today
             fi
           fi
 
-      - name: 🔄 ステータス更新（CSV）のコミット＆プッシュ
+      - name: 🔄 ステータス更新（CSV/XLSX）のコミット＆プッシュ
         if: always()
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add 02_planning/content_ideas_sheet.csv content_ideas_sheet.csv 2>/dev/null || true
+          git add 02_planning/content_ideas_sheet.xlsx 02_planning/content_ideas_sheet.csv 2>/dev/null || true
           if git diff --staged --quiet; then
-            echo "ℹ️ No changes in content_ideas_sheet.csv to commit."
+            echo "ℹ️ No changes in content_ideas_sheet to commit."
           else
             git commit -m "chore: auto-update content queue status (published)"
             git push origin main || true

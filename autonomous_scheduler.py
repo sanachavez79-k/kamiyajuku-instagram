@@ -92,7 +92,7 @@ class KamiyajukuAutonomousScheduler:
         return slide_paths, caption
 
     def send_eve_preview(self, target_day_key: str, force: bool = False, wait_for_button: bool = True):
-        """前夜 21:00 にTelegramへプレビューと承認ボタンを送信し、ボタン押下を待機"""
+        """前日 12:00 にTelegramへプレビューと承認ボタンを送信し、ボタン押下を待機"""
         today_str = get_madrid_now().strftime("%Y-%m-%d")
         history_file = BASE_DIR / "scheduler_history.json"
         history = {}
@@ -112,15 +112,15 @@ class KamiyajukuAutonomousScheduler:
         post_id = f"{target_day_key}_{int(time.time())}"
 
         c = get_current_week_config(target_day_key)
-        print(f"📡 前夜プレビューをTelegramへ配信中: 【{target_day_key}】 ({c['pillar']})")
+        print(f"📡 前日12:00プレビューをTelegramへ配信中: 【{target_day_key}】 ({c['pillar']})")
         self.telegram.send_message(
-            f"🌙 <b>【明日の投稿プレビュー】</b>\n\n"
+            f"☀️ <b>【明日の投稿プレビュー】</b>\n\n"
             f"📌 テーマ: <b>{c['pillar']}</b>\n\n"
             f"以下のスライド全6枚とキャプションで、<b>明日 18:00（スペイン時間）にInstagram（@japones_kamiyajuku）へ自動公開</b>されます！🚀\n\n"
             f"💡 <b>【ご確認後の運用ガイド】</b>\n"
             f"・このままで問題なければ、<b>何も操作しなくても明日18:00に自動で公開</b>されます ✅\n"
             f"・今すぐ公開したい場合 ➔ [ ⚡️ 承認して今すぐ投稿 ]\n"
-            f"・内容を変更したい場合 ➔ Google Driveの <code>content_ideas_sheet.xlsx</code> を編集してください 📝"
+            f"・内容を変更したい場合 ➔ Google Driveの <code>02_planning/content_ideas_sheet.xlsx</code> を編集してください 📝"
         )
         self.telegram.send_preview_package(slide_paths, caption, post_id=post_id)
         print("✅ Telegram配信完了！")
@@ -278,15 +278,15 @@ class KamiyajukuAutonomousScheduler:
         if weekday in eve_mapping:
             target_day = eve_mapping[weekday]
             preview_key = f"preview_{today_str}_{target_day}"
-            if hour >= 21 and not history.get(preview_key):
-                print(f"⏰ 前夜プレビュー配信トリガー検知: 翌日【{target_day}】分を配信します")
+            if hour >= 12 and not history.get(preview_key):
+                print(f"⏰ 前日12:00プレビュー配信トリガー検知: 翌日【{target_day}】分を配信します")
                 self.send_eve_preview(target_day)
 
         if weekday in today_mapping:
             target_day = today_mapping[weekday]
             publish_key = f"publish_{today_str}_{target_day}"
             if hour >= 18 and not history.get(publish_key):
-                print(f"⏰ 当日投稿トリガー検知: 本日【{target_day}】分を投稿します")
+                print(f"⏰ 当日18:00投稿トリガー検知: 本日【{target_day}】分を投稿します")
                 self.publish_today_post(target_day)
                 history[publish_key] = datetime.now().isoformat()
                 with open(history_file, "w", encoding="utf-8") as f:
