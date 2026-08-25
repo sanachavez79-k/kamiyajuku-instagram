@@ -105,16 +105,13 @@ WEEKLY_CONTENT_POOL = {
 
 def load_config_from_sheet(day_key="LUNES"):
     """
-    content_ideas_sheet.xlsx の該当曜日タブからステータスが【READY】になっている最新行を読み込む。
+    02_planning/content_ideas_sheet.xlsx の該当曜日タブからステータスが【READY】になっている最新行を読み込む。
     【PUBLISHED】は厳格に除外（二度と再配信しない）。
     """
     excel_candidates = [
         BASE_DIR / "02_planning" / "content_ideas_sheet.xlsx",
-        BASE_DIR / "content_ideas_sheet.xlsx",
         BASE_DIR.parent / "02_planning" / "content_ideas_sheet.xlsx",
-        BASE_DIR.parent / "content_ideas_sheet.xlsx",
-        Path("/Users/sanakamiya/Library/CloudStorage/GoogleDrive-kamiyajuku.japones@gmail.com/マイドライブ/インスタグラム/02_planning/content_ideas_sheet.xlsx"),
-        Path("/Users/sanakamiya/Library/CloudStorage/GoogleDrive-kamiyajuku.japones@gmail.com/マイドライブ/インスタグラム/content_ideas_sheet.xlsx")
+        Path("/Users/sanakamiya/Library/CloudStorage/GoogleDrive-kamiyajuku.japones@gmail.com/マイドライブ/インスタグラム/02_planning/content_ideas_sheet.xlsx")
     ]
 
     target_excel = None
@@ -221,15 +218,12 @@ def load_config_from_sheet(day_key="LUNES"):
 
 def mark_post_as_published(day_key="LUNES", row_id=None, theme_name=None):
     """
-    投稿完了後に content_ideas_sheet.xlsx の該当行の status を 'PUBLISHED' に更新
+    投稿完了後に 02_planning/content_ideas_sheet.xlsx の該当行の status を 'PUBLISHED' に更新
     """
     excel_candidates = [
         BASE_DIR / "02_planning" / "content_ideas_sheet.xlsx",
-        BASE_DIR / "content_ideas_sheet.xlsx",
         BASE_DIR.parent / "02_planning" / "content_ideas_sheet.xlsx",
-        BASE_DIR.parent / "content_ideas_sheet.xlsx",
-        Path("/Users/sanakamiya/Library/CloudStorage/GoogleDrive-kamiyajuku.japones@gmail.com/マイドライブ/インスタグラム/02_planning/content_ideas_sheet.xlsx"),
-        Path("/Users/sanakamiya/Library/CloudStorage/GoogleDrive-kamiyajuku.japones@gmail.com/マイドライブ/インスタグラム/content_ideas_sheet.xlsx")
+        Path("/Users/sanakamiya/Library/CloudStorage/GoogleDrive-kamiyajuku.japones@gmail.com/マイドライブ/インスタグラム/02_planning/content_ideas_sheet.xlsx")
     ]
 
     tab_aliases = {
