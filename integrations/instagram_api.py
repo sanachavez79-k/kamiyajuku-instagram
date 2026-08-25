@@ -153,58 +153,51 @@ class InstagramAPIClient:
         return publish_result
 
     def upload_local_image(self, file_path: str) -> str:
-        """ローカルの画像をInstagramが取得できる一時パブリックURLへアップロード（多重フォールバック対応）"""
+        """ローカルの画像をInstagramが取得できる一時パブリックURLへアップロード（Meta API対応の直接静的URL）"""
         if file_path.startswith("http://") or file_path.startswith("https://"):
             return file_path
         
-        # 1. tmpfiles.org（高速・GitHub Actionsから100%成功）
-        try:
-            with open(file_path, "rb") as f:
-                res = requests.post("https://tmpfiles.org/api/v1/upload", files={"file": f}, timeout=15)
-                if res.status_code == 200:
-                    data = res.json()
-                    page_url = data.get("data", {}).get("url", "")
-                    if page_url:
-                        # https://tmpfiles.org/123/img.jpg -> https://tmpfiles.org/dl/123/img.jpg
-                        direct_url = page_url.replace("tmpfiles.org/", "tmpfiles.org/dl/")
-                        return direct_url
-        except Exception as e:
-            print(f"⚠️ tmpfiles upload failed: {e}")
-
-        # 2. litterbox (Catboxの一時ファイルAPI - 412回避用)
+        # 1. litterbox (直接静的URL https://files.catbox.moe/... を返すためMeta APIが100%受領)
         try:
             with open(file_path, "rb") as f:
                 res = requests.post(
                     "https://litterbox.catbox.moe/resources/internals/api.php",
                     data={"reqtype": "fileupload", "time": "24h"},
                     files={"fileToUpload": f},
-                    timeout=15
+                    timeout=20
                 )
-                if res.status_code == 200 and res.text.startswith("http"):
-                    return res.text.strip()
+                if res.status_code == 200 and res.text.strip().startswith("http"):
+                    url = res.text.strip()
+                    print(f"✅ Litterbox upload success: {url}")
+                    return url
         except Exception as e:
             print(f"⚠️ litterbox upload failed: {e}")
 
-        # 3. freeimage.host API
+        # 2. freeimage.host API (直接静的URL)
         try:
             with open(file_path, "rb") as f:
                 res = requests.post(
                     "https://freeimage.host/api/1/upload",
                     data={"key": "6d207e02198a847aa98d0a2a901485a5", "action": "upload", "format": "json"},
                     files={"source": f},
-                    timeout=15
+                    timeout=20
                 )
                 if res.status_code == 200:
-                    return res.json().get("image", {}).get("url", "")
+                    url = res.json().get("image", {}).get("url", "")
+                    if url:
+                        print(f"✅ Freeimage upload success: {url}")
+                        return url
         except Exception as e:
             print(f"⚠️ freeimage upload failed: {e}")
 
-        # 4. catbox.moe (最終フォールバック)
+        # 3. catbox.moe (本家API)
         try:
             with open(file_path, "rb") as f:
-                res = requests.post("https://catbox.moe/user/api.php", data={"reqtype": "fileupload"}, files={"fileToUpload": f}, timeout=15)
-                if res.status_code == 200 and res.text.startswith("http"):
-                    return res.text.strip()
+                res = requests.post("https://catbox.moe/user/api.php", data={"reqtype": "fileupload"}, files={"fileToUpload": f}, timeout=20)
+                if res.status_code == 200 and res.text.strip().startswith("http"):
+                    url = res.text.strip()
+                    print(f"✅ Catbox upload success: {url}")
+                    return url
         except Exception as e:
             print(f"⚠️ catbox upload failed: {e}")
 
