@@ -298,8 +298,58 @@ DAY_CONFIGS = {
     for day in ["LUNES", "MIERCOLES", "VIERNES"]
 }
 
+# ==================== 漢字ふりがな（ルビ）辞書＆自動付与エンジン ====================
+KANJI_RUBY_DICT = {
+    '雨': 'あめ', '降': 'ふ', '雷': 'かみなり', '鳴': 'な',
+    '私': 'わたし', '誰': 'だれ', '来': 'き', '今日': 'きょう', '天気': 'てんき',
+    '東京': 'とうきょう', '京都': 'きょうと', '住': 'す', '食': 'た', '行': 'い', '勉強': 'べんきょう',
+    '大丈夫': 'だいじょうぶ', '袋': 'ふくろ', '体調': 'たいちょう',
+    '話': 'はな', '練習': 'れんしゅう', '風邪': 'かぜ', '買': 'か', '働': 'はたら', '貯金': 'ちょきん', '家': 'いえ',
+    '日本': 'にほん', '日本語': 'にほんご', '学校': 'がっこう', '学生': 'がくせい', '留学生': 'りゅうがくせい',
+    '準備': 'じゅんび', '書類': 'しょるい', '発給': 'はっきゅう', '申請': 'しんせい', '生活費': 'せいかつひ',
+    '家賃': 'やちん', '部屋': 'へや', '時間': 'じかん', '毎日': 'まいにち', '朝': 'あさ', '夜': 'よる',
+    '友達': 'ともだち', '先生': 'せんせい', '使': 'つか', '方': 'かた', '意味': 'いみ',
+    '表現': 'ひょうげん', '重要': 'じゅうよう', '自然': 'しぜん', '注意': 'ちゅうい', '会話': 'かいわ',
+    '相づち': 'あいづち', '挨拶': 'あいさつ', '居酒屋': 'いざかや', '注文': 'ちゅうもん', '会計': 'かいけい',
+    '開': 'あ', '閉': 'し', '入': 'はい', '出': 'で', '教': 'おし', '見': 'み', '聞': 'き'
+}
+
+def auto_add_furigana(text: str) -> str:
+    """テキスト内の漢字に自動でふりがな（<ruby>タグ）を付与"""
+    if not text:
+        return ""
+    import re
+    # すでにrubyタグがある場合はそのまま
+    if "<ruby>" in text:
+        return text
+
+    sorted_words = sorted(KANJI_RUBY_DICT.keys(), key=len, reverse=True)
+    pattern = "(" + "|".join(re.escape(w) for w in sorted_words) + ")"
+    
+    def repl(m):
+        w = m.group(1)
+        return f"<ruby>{w}<rt>{KANJI_RUBY_DICT[w]}</rt></ruby>"
+        
+    return re.sub(pattern, repl, text)
+
 def generate_master_day_html(day_key="LUNES", target_date=None):
-    c = get_current_week_config(day_key, target_date=target_date)
+    raw_c = get_current_week_config(day_key, target_date=target_date)
+    # ふりがなを自動適用したコピーを作成
+    c = dict(raw_c)
+    if "rule1" in c and isinstance(c["rule1"], dict):
+        c["rule1"] = dict(c["rule1"])
+        c["rule1"]["ja"] = auto_add_furigana(c["rule1"].get("ja", ""))
+    if "rule2" in c and isinstance(c["rule2"], dict):
+        c["rule2"] = dict(c["rule2"])
+        c["rule2"]["ja"] = auto_add_furigana(c["rule2"].get("ja", ""))
+    if "q1_ja" in c:
+        c["q1_ja"] = auto_add_furigana(c.get("q1_ja", ""))
+    if "q2_ja" in c:
+        c["q2_ja"] = auto_add_furigana(c.get("q2_ja", ""))
+    if "cheat_b1" in c:
+        c["cheat_b1"] = auto_add_furigana(c.get("cheat_b1", ""))
+    if "cheat_b2" in c:
+        c["cheat_b2"] = auto_add_furigana(c.get("cheat_b2", ""))
     
     html = f"""<!DOCTYPE html>
 <html lang="es">
@@ -322,6 +372,19 @@ def generate_master_day_html(day_key="LUNES", target_date=None):
 
   * {{ box-sizing: border-box; margin: 0; padding: 0; }}
   body {{ background-color: #333; font-family: 'Montserrat', 'Noto Sans JP', sans-serif; }}
+
+  /* ふりがな（ルビ）の美しいスタイル */
+  ruby {{
+    ruby-align: center;
+    ruby-position: over;
+  }}
+  rt {{
+    font-size: 0.52em;
+    color: var(--brand-deep);
+    font-weight: 700;
+    line-height: 1;
+    transform: translateY(-2px);
+  }}
 
   .slide {{
     width: 1080px; height: 1350px;
