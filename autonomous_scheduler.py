@@ -110,9 +110,12 @@ class KamiyajukuAutonomousScheduler:
         c = get_current_week_config(target_day_key)
         print(f"📡 前夜プレビューをTelegramへ配信中: 【{target_day_key}】 ({c['pillar']})")
         self.telegram.send_message(
-            f"🌙 *【明日の投稿プレビュー】*\n"
-            f"明日（{c['pillar']}）の投稿案が完成しました！\n"
-            f"スライド画像全6枚とキャプションを確認して「承認」または「修正」を押してください。"
+            f"🌙 <b>【明日の投稿プレビュー】</b>\n\n"
+            f"📌 テーマ: <b>{c['pillar']}</b>\n\n"
+            f"以下のスライド全6枚とキャプションで、<b>明日 18:00（スペイン時間）にInstagram（@japones_kamiyajuku）へ自動公開</b>されます！🚀\n\n"
+            f"💡 <b>【ご確認後の運用ガイド】</b>\n"
+            f"・このままで問題なければ、<b>何も操作しなくても明日18:00に自動で公開</b>されます ✅\n"
+            f"・内容を変更したい場合は、Google Driveの <code>投稿アイデア管理シート.xlsx</code> を編集してください 📝"
         )
         self.telegram.send_preview_package(slide_paths, caption, post_id=post_id)
         print("✅ Telegram配信完了！")
