@@ -105,50 +105,54 @@ WEEKLY_CONTENT_POOL = {
 
 def load_config_from_sheet(day_key="LUNES"):
     """
-    content_ideas_sheet.csv から指定曜日の最も古い未投稿（pending / draft / READY）行を取得。
-    status == 'published' は厳格に除外（重複防止）。
+    content_ideas_sheet.xlsx の該当曜日タブからステータスが【READY】になっている最新行を読み込む。
+    【PUBLISHED】は厳格に除外（二度と再配信しない）。
     """
-    csv_candidates = [
-        BASE_DIR / "02_planning" / "content_ideas_sheet.csv",
-        BASE_DIR / "content_ideas_sheet.csv",
-        BASE_DIR.parent / "02_planning" / "content_ideas_sheet.csv",
-        BASE_DIR.parent / "content_ideas_sheet.csv",
-        Path("/Users/sanakamiya/Library/CloudStorage/GoogleDrive-kamiyajuku.japones@gmail.com/マイドライブ/インスタグラム/02_planning/content_ideas_sheet.csv"),
-        Path("/Users/sanakamiya/Library/CloudStorage/GoogleDrive-kamiyajuku.japones@gmail.com/マイドライブ/インスタグラム/content_ideas_sheet.csv")
+    excel_candidates = [
+        BASE_DIR / "02_planning" / "content_ideas_sheet.xlsx",
+        BASE_DIR / "content_ideas_sheet.xlsx",
+        BASE_DIR.parent / "02_planning" / "content_ideas_sheet.xlsx",
+        BASE_DIR.parent / "content_ideas_sheet.xlsx",
+        Path("/Users/sanakamiya/Library/CloudStorage/GoogleDrive-kamiyajuku.japones@gmail.com/マイドライブ/インスタグラム/02_planning/content_ideas_sheet.xlsx"),
+        Path("/Users/sanakamiya/Library/CloudStorage/GoogleDrive-kamiyajuku.japones@gmail.com/マイドライブ/インスタグラム/content_ideas_sheet.xlsx")
     ]
 
-    target_csv = None
-    for p in csv_candidates:
+    target_excel = None
+    for p in excel_candidates:
         if p.exists():
-            target_csv = p
+            target_excel = p
             break
 
-    if target_csv:
+    tab_aliases = {
+        "LUNES": ["月曜_JLPT文法", "Monday_JLPT", "LUNES", "月曜"],
+        "MIERCOLES": ["水曜_日常会話", "Wednesday_Conversation", "MIERCOLES", "水曜"],
+        "VIERNES": ["金曜_日本留学・ビザ", "Friday_Study_Visa", "VIERNES", "金曜"]
+    }
+    target_tab_names = tab_aliases.get(day_key, ["月曜_JLPT文法"])
+
+    if target_excel:
         try:
-            with open(target_csv, "r", encoding="utf-8") as f:
-                reader = csv.DictReader(f)
-                for row in reader:
-                    row_day = (row.get("day_of_week") or row.get("曜日") or "").strip().upper()
-                    status = (row.get("status") or row.get("ステータス") or "").strip().lower()
+            import openpyxl
+            wb = openpyxl.load_workbook(target_excel, data_only=True)
+            ws = None
+            for name in target_tab_names:
+                if name in wb.sheetnames:
+                    ws = wb[name]
+                    break
 
-                    day_match = (
-                        (day_key == "LUNES" and row_day in ["LUNES", "月曜", "MONDAY"]) or
-                        (day_key == "MIERCOLES" and row_day in ["MIERCOLES", "水曜", "WEDNESDAY"]) or
-                        (day_key == "VIERNES" and row_day in ["VIERNES", "金曜", "FRIDAY"])
-                    )
+            if ws is not None:
+                # 5行目から順に走査し、READY な行を抽出（PUBLISHED は除外）
+                for r in range(5, ws.max_row + 1):
+                    no = ws.cell(row=r, column=1).value
+                    status = str(ws.cell(row=r, column=2).value or "").strip().upper()
+                    theme = str(ws.cell(row=r, column=3).value or "").strip()
+                    notes = str(ws.cell(row=r, column=4).value or "").strip()
+                    sched_date = str(ws.cell(row=r, column=5).value or "").strip()
 
-                    if not day_match:
-                        continue
-
-                    # 厳格なフィルター: published の場合は絶対にスキップ
-                    if status == "published":
-                        continue
-
-                    if status in ["pending", "draft", "ready", ""]:
-                        theme = row.get("theme") or row.get("テーマ_日本語") or ""
-                        notes = row.get("notes") or row.get("補足メモ") or ""
-                        row_id = row.get("id") or row.get("ID") or ""
-
+                    if status == "READY" and theme:
+                        print(f"📖 Loaded READY theme from Excel ({ws.title} Row {r}): {theme}")
+                        
+                        # デフォルトスタイル
                         if day_key == "LUNES":
                             bg_primary, brand_deep, accent_main, accent_light, photo = "#EEF4EA", "#1B5E20", "#E8822A", "#DCEBD6", PHOTO_MONDAY
                             tag_text = "JLPT N5 / N4 GRAMÁTICA ⛩️"
@@ -165,59 +169,19 @@ def load_config_from_sheet(day_key="LUNES"):
                             dm_kw = "VISA"
                             dm_gift = "<b>Guía Completa para Estudiar en Japón desde España</b> + <b>Asesoría</b>"
 
-                        if row.get("title_es"):
-                            return {
-                                "pillar": theme,
-                                "tag_text": tag_text,
-                                "bg_primary": bg_primary, "brand_deep": brand_deep, "accent_main": accent_main, "accent_light": accent_light,
-                                "student_photo": photo, "photo_position": "center 20%",
-                                "title_html": row.get("title_es", ""),
-                                "subtitle": row.get("subtitle_es", ""),
-                                "hero_left": {"char": row.get("rule1_badge", "").split()[0] if row.get("rule1_badge") else "要点1", "color": accent_main, "desc": row.get("rule1_title", "")},
-                                "hero_right": {"char": row.get("rule2_badge", "").split()[0] if row.get("rule2_badge") else "要点2", "color": brand_deep, "desc": row.get("rule2_title", "")},
-                                "rule1": {
-                                    "badge": row.get("rule1_badge", "Punto 1"),
-                                    "badge_bg": accent_main,
-                                    "title": row.get("rule1_title", ""),
-                                    "desc": row.get("rule1_desc", ""),
-                                    "ja": row.get("rule1_ja", ""),
-                                    "es": row.get("rule1_es", "")
-                                },
-                                "rule2": {
-                                    "badge": row.get("rule2_badge", "Punto 2"),
-                                    "badge_bg": brand_deep,
-                                    "title": row.get("rule2_title", ""),
-                                    "desc": row.get("rule2_desc", ""),
-                                    "ja": row.get("rule2_ja", ""),
-                                    "es": row.get("rule2_es", "")
-                                },
-                                "q1_ja": row.get("q1_ja", ""),
-                                "q1_es": row.get("q1_es", ""),
-                                "a1_text": row.get("a1_text", ""),
-                                "a1_desc": row.get("a1_desc", ""),
-                                "q2_ja": row.get("q2_ja", ""),
-                                "q2_es": row.get("q2_es", ""),
-                                "a2_text": row.get("a2_text", ""),
-                                "a2_desc": row.get("a2_desc", ""),
-                                "cheat_t1": row.get("cheat_t1", ""),
-                                "cheat_b1": row.get("cheat_b1", ""),
-                                "cheat_t2": row.get("cheat_t2", ""),
-                                "cheat_b2": row.get("cheat_b2", ""),
-                                "dm_keyword": row.get("dm_keyword", dm_kw),
-                                "dm_gift": row.get("dm_gift", dm_gift),
-                                "_row_id": row_id,
-                                "_csv_path": str(target_csv)
-                            }
-
+                        # 既存プールとのマッチング
                         pool = WEEKLY_CONTENT_POOL.get(day_key, [])
                         for item in pool:
-                            if any(k in item.get("pillar", "") for k in theme.split()):
+                            if any(k in item.get("pillar", "") for k in theme.split()) or any(k in theme for k in ["は", "が", "に", "で", "ため", "よう", "だいじょうぶ", "すみません", "ビザ", "生活費"]):
                                 res = dict(item)
                                 res["pillar"] = f"{theme}"
-                                res["_row_id"] = row_id
-                                res["_csv_path"] = str(target_csv)
+                                res["_row_id"] = no or r
+                                res["_excel_path"] = str(target_excel)
+                                res["_excel_row"] = r
+                                res["_excel_sheet"] = ws.title
                                 return res
 
+                        # 新規テーマ自動構成
                         return {
                             "pillar": f"{theme}",
                             "tag_text": tag_text,
@@ -245,76 +209,74 @@ def load_config_from_sheet(day_key="LUNES"):
                             "cheat_t2": "💼 ¿Quieres practicar con nativos?", "cheat_b2": "➔ Clases online en grupos reducidos de Kamiya Juku.",
                             "dm_keyword": dm_kw,
                             "dm_gift": dm_gift,
-                            "_row_id": row_id,
-                            "_csv_path": str(target_csv)
+                            "_row_id": no or r,
+                            "_excel_path": str(target_excel),
+                            "_excel_row": r,
+                            "_excel_sheet": ws.title
                         }
         except Exception as e:
-            print(f"⚠️ CSVキュー読み込みエラー: {e}")
+            print(f"⚠️ Excel読み込みエラー: {e}")
 
     return None
 
 def mark_post_as_published(day_key="LUNES", row_id=None, theme_name=None):
     """
-    投稿完了後に content_ideas_sheet.csv の該当行の status を 'published' に更新し、published_at を記録
+    投稿完了後に content_ideas_sheet.xlsx の該当行の status を 'PUBLISHED' に更新
     """
-    csv_paths = [
-        BASE_DIR / "02_planning" / "content_ideas_sheet.csv",
-        BASE_DIR / "content_ideas_sheet.csv",
-        BASE_DIR.parent / "02_planning" / "content_ideas_sheet.csv",
-        BASE_DIR.parent / "content_ideas_sheet.csv",
-        Path("/Users/sanakamiya/Library/CloudStorage/GoogleDrive-kamiyajuku.japones@gmail.com/マイドライブ/インスタグラム/02_planning/content_ideas_sheet.csv"),
-        Path("/Users/sanakamiya/Library/CloudStorage/GoogleDrive-kamiyajuku.japones@gmail.com/マイドライブ/インスタグラム/content_ideas_sheet.csv")
+    excel_candidates = [
+        BASE_DIR / "02_planning" / "content_ideas_sheet.xlsx",
+        BASE_DIR / "content_ideas_sheet.xlsx",
+        BASE_DIR.parent / "02_planning" / "content_ideas_sheet.xlsx",
+        BASE_DIR.parent / "content_ideas_sheet.xlsx",
+        Path("/Users/sanakamiya/Library/CloudStorage/GoogleDrive-kamiyajuku.japones@gmail.com/マイドライブ/インスタグラム/02_planning/content_ideas_sheet.xlsx"),
+        Path("/Users/sanakamiya/Library/CloudStorage/GoogleDrive-kamiyajuku.japones@gmail.com/マイドライブ/インスタグラム/content_ideas_sheet.xlsx")
     ]
 
-    now_str = datetime.now(MADRID_TZ).strftime("%Y-%m-%d %H:%M:%S")
-    updated = False
+    tab_aliases = {
+        "LUNES": ["月曜_JLPT文法", "Monday_JLPT", "LUNES", "月曜"],
+        "MIERCOLES": ["水曜_日常会話", "Wednesday_Conversation", "MIERCOLES", "水曜"],
+        "VIERNES": ["金曜_日本留学・ビザ", "Friday_Study_Visa", "VIERNES", "金曜"]
+    }
+    target_tab_names = tab_aliases.get(day_key, ["月曜_JLPT文法"])
 
-    for target_csv in csv_paths:
-        if not target_csv.exists():
+    for p in excel_candidates:
+        if not p.exists():
             continue
-
         try:
-            rows = []
-            fieldnames = []
-            with open(target_csv, "r", encoding="utf-8") as f:
-                reader = csv.DictReader(f)
-                fieldnames = reader.fieldnames
-                for r in reader:
-                    r_id = r.get("id") or r.get("ID")
-                    r_day = (r.get("day_of_week") or r.get("曜日") or "").strip().upper()
-                    r_theme = r.get("theme") or r.get("テーマ_日本語") or ""
-                    r_status = (r.get("status") or r.get("ステータス") or "").strip().lower()
+            import openpyxl
+            from openpyxl.styles import Font, PatternFill
+            wb = openpyxl.load_workbook(p)
+            ws = None
+            for name in target_tab_names:
+                if name in wb.sheetnames:
+                    ws = wb[name]
+                    break
+
+            if ws is not None:
+                for r in range(5, ws.max_row + 1):
+                    no = ws.cell(row=r, column=1).value
+                    theme = str(ws.cell(row=r, column=3).value or "").strip()
+                    status = str(ws.cell(row=r, column=2).value or "").strip().upper()
 
                     match = False
-                    if row_id and r_id == str(row_id):
+                    if row_id and str(no) == str(row_id):
                         match = True
-                    elif theme_name and theme_name in r_theme and r_status != "published":
+                    elif theme_name and (theme_name in theme or theme in theme_name) and status != "PUBLISHED":
                         match = True
-                    elif not row_id and not theme_name and r_status in ["pending", "draft", "ready"] and (
-                        (day_key == "LUNES" and r_day in ["LUNES", "月曜"]) or
-                        (day_key == "MIERCOLES" and r_day in ["MIERCOLES", "水曜"]) or
-                        (day_key == "VIERNES" and r_day in ["VIERNES", "金曜"])
-                    ):
+                    elif not row_id and not theme_name and status == "READY":
                         match = True
 
-                    if match and not updated:
-                        r["status"] = "published"
-                        if "published_at" in r:
-                            r["published_at"] = now_str
-                        print(f"✅ Mark as published in {target_csv.name}: ID={r_id}, Theme={r_theme}")
-                        updated = True
+                    if match:
+                        cell = ws.cell(row=r, column=2)
+                        cell.value = "PUBLISHED"
+                        cell.font = Font(name="Helvetica Neue", size=11, color="6B7280")
+                        cell.fill = PatternFill(fill_type=None)
+                        print(f"✅ Marked as PUBLISHED in Excel ({p.name} -> {ws.title} Row {r})")
+                        break
 
-                    rows.append(r)
-
-            with open(target_csv, "w", encoding="utf-8", newline="") as f:
-                writer = csv.DictWriter(f, fieldnames=fieldnames)
-                writer.writeheader()
-                writer.writerows(rows)
-
+                wb.save(p)
         except Exception as e:
-            print(f"⚠️ Failed to update published status in {target_csv}: {e}")
-
-    return updated
+            print(f"⚠️ Failed to update published status in Excel {p}: {e}")
 
 def get_current_week_config(day_key="LUNES", target_date=None):
     """
