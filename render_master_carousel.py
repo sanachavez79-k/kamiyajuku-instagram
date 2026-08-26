@@ -67,17 +67,19 @@ WEEKLY_CONTENT_POOL = {
             "student_photo": PHOTO_WEDNESDAY, "photo_position": "center 25%",
             "title_html": 'Los 4 significados de <span style="color: #D97706; text-decoration: underline;">だいじょうぶ (Daijoubu)</span> 🤯🇯🇵',
             "subtitle": "¡No solo significa 'Estoy bien'! Aprende a usarlo como un verdadero nativo.",
-            "hero_left": {"char": "万能", "color": "#D97706", "desc": "4 Usos Clave"},
-            "hero_right": {"char": "日常", "color": "#B45309", "desc": "Conversación Real"},
+            "hero_left": {"char": "OK", "color": "#D97706", "desc": "Aceptar / Rechazo cortés"},
+            "hero_right": {"char": "安心", "color": "#B45309", "desc": "Salud / Sin problemas"},
             "rule1": {"badge": "Significado 1 & 2", "badge_bg": "#D97706", "title": "OK (De acuerdo) / No gracias (Rechazo)", "desc": "Para aceptar con cortesía o para decir 'No gracias' en tiendas.", "ja": 'これで <ruby>大丈夫<rt>だいじょうぶ</rt></ruby>です / <ruby>袋<rt>ふくろ</rt></ruby>は <ruby>大丈夫<rt>だいじょうぶ</rt></ruby>です', "es": "Así está bien (OK) / Sin bolsa está bien (No gracias)."},
             "rule2": {"badge": "Significado 3 & 4", "badge_bg": "#B45309", "title": "¿Estás bien? / Sin problemas de salud", "desc": "Para preguntar por el estado de alguien o confirmar que estás bien.", "ja": '<ruby>大丈夫<rt>だいじょうぶ</rt></ruby>ですか？ ➔ はい、<ruby>大丈夫<rt>だいじょうぶ</rt></ruby>です！', "es": "¿Te encuentras bien? ➔ ¡Sí, todo bien!"},
             "q1_ja": '店員:「レジ<ruby>袋<rt>ふくろ</rt></ruby>は ご利用ですか？」 ➔ 客:「（ &nbsp;&nbsp;&nbsp;&nbsp; ）」', "q1_es": "¿Desea bolsa de plástico?",
+            "q1_opt_a": "A. 大丈夫です (No gracias)", "q1_opt_b": "B. ごめんなさい",
             "q2_ja": '友人が 転んだ時 ➔ 「（ &nbsp;&nbsp;&nbsp;&nbsp; ）！？」', "q2_es": "Cuando un amigo se tropieza.",
-            "a1_text": "Respuesta: 大丈夫です (Daijoubu desu)", "a1_desc": "¡La forma más natural y educada de decir 'No gracias' en tiendas!",
-            "a2_text": "Respuesta: 大丈夫！？ (Daijoubu!?)", "a2_desc": "¡La pregunta clave para saber si alguien necesita ayuda!",
-            "cheat_t1": "¿Para rechazar con cortesía en tiendas?", "cheat_b1": "➔ 大丈夫です (No gracias)",
+            "q2_opt_a": "A. 大丈夫！？ (¿Estás bien?)", "q2_opt_b": "B. すみません！？",
+            "a1_text": "Respuesta: A. 大丈夫です", "a1_desc": "¡La forma más natural y educada de decir 'No gracias' en tiendas!",
+            "a2_text": "Respuesta: A. 大丈夫！？", "a2_desc": "¡La pregunta clave para saber si alguien necesita ayuda!",
+            "cheat_t1": "¿Para rechazar con cortesía en tiendas?", "cheat_b1": "➔ 大丈夫です (No gracias / Estoy bien)",
             "cheat_t2": "¿Para confirmar que no hay problema?", "cheat_b2": "➔ 大丈夫です (Todo bien / OK)",
-            "dm_keyword": "JLPT", "dm_gift": "<b>Guía PDF de Expresiones Cotidianas</b> + <b>Test de Nivel</b>"
+            "dm_keyword": "JAPONES", "dm_gift": "<b>Guía de Expresiones Clave para Viajar a Japón</b> + <b>Audio</b>"
         }
     ],
     "VIERNES": [
@@ -339,6 +341,18 @@ def generate_master_day_html(day_key="LUNES", target_date=None):
         c["q1_ja"] = auto_add_furigana(c.get("q1_ja", ""))
     if "q2_ja" in c:
         c["q2_ja"] = auto_add_furigana(c.get("q2_ja", ""))
+    if "q1_opt_a" in c:
+        c["q1_opt_a"] = auto_add_furigana(c.get("q1_opt_a", ""))
+    if "q1_opt_b" in c:
+        c["q1_opt_b"] = auto_add_furigana(c.get("q1_opt_b", ""))
+    if "q2_opt_a" in c:
+        c["q2_opt_a"] = auto_add_furigana(c.get("q2_opt_a", ""))
+    if "q2_opt_b" in c:
+        c["q2_opt_b"] = auto_add_furigana(c.get("q2_opt_b", ""))
+    if "a1_text" in c:
+        c["a1_text"] = auto_add_furigana(c.get("a1_text", ""))
+    if "a2_text" in c:
+        c["a2_text"] = auto_add_furigana(c.get("a2_text", ""))
     if "cheat_b1" in c:
         c["cheat_b1"] = auto_add_furigana(c.get("cheat_b1", ""))
     if "cheat_b2" in c:
@@ -651,8 +665,8 @@ def generate_master_day_html(day_key="LUNES", target_date=None):
       <div class="quiz-q">Q1. {c['q1_ja']}</div>
       <div class="quiz-sub">{c['q1_es']}</div>
       <div class="quiz-options">
-        <div class="quiz-opt">A</div>
-        <div class="quiz-opt">B</div>
+        <div class="quiz-opt">{c.get('q1_opt_a', 'A')}</div>
+        <div class="quiz-opt">{c.get('q1_opt_b', 'B')}</div>
       </div>
     </div>
 
@@ -660,8 +674,8 @@ def generate_master_day_html(day_key="LUNES", target_date=None):
       <div class="quiz-q">Q2. {c['q2_ja']}</div>
       <div class="quiz-sub">{c['q2_es']}</div>
       <div class="quiz-options">
-        <div class="quiz-opt">A</div>
-        <div class="quiz-opt">B</div>
+        <div class="quiz-opt">{c.get('q2_opt_a', 'A')}</div>
+        <div class="quiz-opt">{c.get('q2_opt_b', 'B')}</div>
       </div>
     </div>
   </div>
