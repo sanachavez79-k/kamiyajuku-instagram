@@ -85,7 +85,7 @@ WEEKLY_CONTENT_POOL = {
             "a2_text": "Respuesta: A. 大丈夫！？", "a2_desc": "¡La pregunta clave para saber si alguien necesita ayuda!",
             "cheat_t1": "¿Para rechazar con cortesía en tiendas?", "cheat_b1": "➔ 大丈夫です (No gracias / Estoy bien)",
             "cheat_t2": "¿Para confirmar que no hay problema?", "cheat_b2": "➔ 大丈夫です (Todo bien / OK)",
-            "dm_keyword": "JAPONES", "dm_gift": "<b>Guía de Expresiones Clave para Viajar a Japón</b> + <b>Audio</b>"
+            "dm_keyword": "JLPT", "dm_gift": "<b>Guía Definitiva de Partículas JLPT (PDF)</b>"
         }
     ],
     "VIERNES": [
