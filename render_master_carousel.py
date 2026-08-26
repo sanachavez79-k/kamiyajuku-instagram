@@ -67,14 +67,20 @@ WEEKLY_CONTENT_POOL = {
             "student_photo": PHOTO_WEDNESDAY, "photo_position": "center 25%",
             "title_html": 'Los 4 significados de <span style="color: #D97706; text-decoration: underline;">だいじょうぶ (Daijoubu)</span> 🤯🇯🇵',
             "subtitle": "¡No solo significa 'Estoy bien'! Aprende a usarlo como un verdadero nativo.",
-            "hero_left": {"char": "OK", "color": "#D97706", "desc": "Aceptar / Rechazo cortés"},
-            "hero_right": {"char": "安心", "color": "#B45309", "desc": "Salud / Sin problemas"},
-            "rule1": {"badge": "Significado 1 & 2", "badge_bg": "#D97706", "title": "OK (De acuerdo) / No gracias (Rechazo)", "desc": "Para aceptar con cortesía o para decir 'No gracias' en tiendas.", "ja": 'これで <ruby>大丈夫<rt>だいじょうぶ</rt></ruby>です / <ruby>袋<rt>ふくろ</rt></ruby>は <ruby>大丈夫<rt>だいじょうぶ</rt></ruby>です', "es": "Así está bien (OK) / Sin bolsa está bien (No gracias)."},
-            "rule2": {"badge": "Significado 3 & 4", "badge_bg": "#B45309", "title": "¿Estás bien? / Sin problemas de salud", "desc": "Para preguntar por el estado de alguien o confirmar que estás bien.", "ja": '<ruby>大丈夫<rt>だいじょうぶ</rt></ruby>ですか？ ➔ はい、<ruby>大丈夫<rt>だいじょうぶ</rt></ruby>です！', "es": "¿Te encuentras bien? ➔ ¡Sí, todo bien!"},
-            "q1_ja": '店員:「レジ<ruby>袋<rt>ふくろ</rt></ruby>は ご利用ですか？」 ➔ 客:「（ &nbsp;&nbsp;&nbsp;&nbsp; ）」', "q1_es": "¿Desea bolsa de plástico?",
-            "q1_opt_a": "A. 大丈夫です (No gracias)", "q1_opt_b": "B. ごめんなさい",
-            "q2_ja": '友人が 転んだ時 ➔ 「（ &nbsp;&nbsp;&nbsp;&nbsp; ）！？」', "q2_es": "Cuando un amigo se tropieza.",
-            "q2_opt_a": "A. 大丈夫！？ (¿Estás bien?)", "q2_opt_b": "B. すみません！？",
+            "hero_single": {
+                "kanji": "大丈夫？",
+                "color": "#D97706",
+                "romaji": "DAIJOUBU?",
+                "desc": "¡La palabra más versátil y confusa del japonés cotidiano!"
+            },
+            "rule1": {"badge": "Significado 1 & 2", "badge_bg": "#D97706", "title": "OK (De acuerdo) / No gracias (Rechazo)", "desc": "Para aceptar con cortesía o para decir 'No gracias' en tiendas.", "ja": "これで 大丈夫です / 袋は 大丈夫です", "es": "Así está bien (OK) / Sin bolsa está bien (No gracias)."},
+            "rule2": {"badge": "Significado 3 & 4", "badge_bg": "#B45309", "title": "¿Estás bien? / Sin problemas de salud", "desc": "Para preguntar por el estado de alguien o confirmar que estás bien.", "ja": "大丈夫ですか？ ➔ はい、大丈夫です！", "es": "¿Te encuentras bien? ➔ ¡Sí, todo bien!"},
+            "q1_ja": "店員:「レジ袋は ご利用ですか？」 ➔ 客:「（ &nbsp;&nbsp;&nbsp;&nbsp; ）」", "q1_es": "Situación 1: En la caja de una tienda o supermercado.",
+            "q1_opt_a": "A. 大丈夫です",
+            "q1_opt_b": "B. ごめんなさい",
+            "q2_ja": "友人が 転んだ時 ➔ 「（ &nbsp;&nbsp;&nbsp;&nbsp; ）！？」", "q2_es": "Situación 2: Cuando un amigo se tropieza en la calle.",
+            "q2_opt_a": "A. 大丈夫！？",
+            "q2_opt_b": "B. すみません！？",
             "a1_text": "Respuesta: A. 大丈夫です", "a1_desc": "¡La forma más natural y educada de decir 'No gracias' en tiendas!",
             "a2_text": "Respuesta: A. 大丈夫！？", "a2_desc": "¡La pregunta clave para saber si alguien necesita ayuda!",
             "cheat_t1": "¿Para rechazar con cortesía en tiendas?", "cheat_b1": "➔ 大丈夫です (No gracias / Estoy bien)",
@@ -306,9 +312,10 @@ KANJI_RUBY_DICT = {
     '日本': 'にほん', '日本語': 'にほんご', '学校': 'がっこう', '学生': 'がくせい', '留学生': 'りゅうがくせい',
     '準備': 'じゅんび', '書類': 'しょるい', '発給': 'はっきゅう', '申請': 'しんせい', '生活費': 'せいかつひ',
     '家賃': 'やちん', '部屋': 'へや', '時間': 'じかん', '毎日': 'まいにち', '朝': 'あさ', '夜': 'よる',
-    '友達': 'ともだち', '先生': 'せんせい', '使': 'つか', '方': 'かた', '意味': 'いみ',
+    '友達': 'ともだち', '友人': 'ゆうじん', '先生': 'せんせい', '使': 'つか', '方': 'かた', '意味': 'いみ',
     '表現': 'ひょうげん', '重要': 'じゅうよう', '自然': 'しぜん', '注意': 'ちゅうい', '会話': 'かいわ',
     '相づち': 'あいづち', '挨拶': 'あいさつ', '居酒屋': 'いざかや', '注文': 'ちゅうもん', '会計': 'かいけい',
+    '店員': 'てんいん', '客': 'きゃく', '利用': 'りよう', '転': 'ころ', '時': 'とき',
     '開': 'あ', '閉': 'し', '入': 'はい', '出': 'で', '教': 'おし', '見': 'み', '聞': 'き'
 }
 
@@ -316,17 +323,24 @@ def auto_add_furigana(text: str) -> str:
     """テキスト内の漢字に自動でふりがな（<ruby>タグ）を付与"""
     if not text:
         return ""
-    if "<ruby>" in text:
-        return text
 
+    # 既にrubyタグ化されている部分を保護しながら置換
     sorted_words = sorted(KANJI_RUBY_DICT.keys(), key=len, reverse=True)
     pattern = "(" + "|".join(re.escape(w) for w in sorted_words) + ")"
-    
-    def repl(m):
-        w = m.group(1)
-        return f"<ruby>{w}<rt>{KANJI_RUBY_DICT[w]}</rt></ruby>"
-        
-    return re.sub(pattern, repl, text)
+
+    # 簡易トークン分割（rubyタグ内は除外）
+    parts = re.split(r"(<ruby>.*?</ruby>)", text)
+    result = []
+    for p in parts:
+        if p.startswith("<ruby>"):
+            result.append(p)
+        else:
+            def repl(m):
+                w = m.group(1)
+                return f"<ruby>{w}<rt>{KANJI_RUBY_DICT[w]}</rt></ruby>"
+            result.append(re.sub(pattern, repl, p))
+
+    return "".join(result)
 
 def generate_master_day_html(day_key="LUNES", target_date=None):
     raw_c = get_current_week_config(day_key, target_date=target_date)
@@ -357,6 +371,28 @@ def generate_master_day_html(day_key="LUNES", target_date=None):
         c["cheat_b1"] = auto_add_furigana(c.get("cheat_b1", ""))
     if "cheat_b2" in c:
         c["cheat_b2"] = auto_add_furigana(c.get("cheat_b2", ""))
+
+    if "hero_single" in c and c["hero_single"]:
+        hs = dict(c["hero_single"])
+        hs["kanji"] = auto_add_furigana(hs.get("kanji", ""))
+        hero_html = f"""<div class="hero-single-card">
+      <div class="hero-single-kanji" style="color: {hs.get('color', 'var(--brand-deep)')};">{hs['kanji']}</div>
+      <div class="hero-single-romaji">{hs.get('romaji', '')}</div>
+      <div class="hero-single-desc">{hs.get('desc', '')}</div>
+    </div>"""
+    else:
+        hl = c.get('hero_left', {'color': 'var(--brand-deep)', 'char': '', 'desc': ''})
+        hr = c.get('hero_right', {'color': 'var(--accent-main)', 'char': '', 'desc': ''})
+        hero_html = f"""<div class="hero-box">
+      <div class="hero-card">
+        <div class="hero-kanji" style="color: {hl['color']};">{hl['char']}</div>
+        <div class="hero-desc">{hl['desc']}</div>
+      </div>
+      <div class="hero-card">
+        <div class="hero-kanji" style="color: {hr['color']};">{hr['char']}</div>
+        <div class="hero-desc">{hr['desc']}</div>
+      </div>
+    </div>"""
     
     html = f"""<!DOCTYPE html>
 <html lang="es">
@@ -454,13 +490,30 @@ def generate_master_day_html(day_key="LUNES", target_date=None):
   }}
   .hero-card {{
     background: var(--bg-card); border-radius: var(--border-radius);
-    padding: 35px 25px; text-align: center; box-shadow: var(--card-shadow);
+    padding: 30px; text-align: center; box-shadow: var(--card-shadow);
+    border: 2px solid rgba(0,0,0,0.03);
   }}
   .hero-kanji {{
-    font-size: 88px; font-weight: 900; line-height: 1; margin-bottom: 12px;
+    font-size: 72px; font-weight: 900; line-height: 1; margin-bottom: 8px;
   }}
   .hero-desc {{
-    font-size: 21px; font-weight: 800; color: var(--text-muted);
+    font-size: 20px; font-weight: 700; color: var(--text-muted);
+  }}
+
+  /* シングルヒーローカード（中央ドーン配置） */
+  .hero-single-card {{
+    background: var(--bg-card); border-radius: var(--border-radius);
+    padding: 40px 30px; text-align: center; box-shadow: var(--card-shadow);
+    border: 3px solid var(--accent-light); margin: 35px 0;
+  }}
+  .hero-single-kanji {{
+    font-size: 88px; font-weight: 900; line-height: 1.15; margin-bottom: 8px;
+  }}
+  .hero-single-romaji {{
+    font-size: 24px; font-weight: 800; color: var(--brand-deep); letter-spacing: 2px; margin-bottom: 10px;
+  }}
+  .hero-single-desc {{
+    font-size: 22px; font-weight: 700; color: var(--text-muted); line-height: 1.4;
   }}
 
   /* スライド2: ルール解説 */
@@ -594,16 +647,7 @@ def generate_master_day_html(day_key="LUNES", target_date=None):
   <div>
     <h1 class="cover-title">{c['title_html']}</h1>
     <p class="cover-subtitle">{c['subtitle']}</p>
-    <div class="hero-box">
-      <div class="hero-card">
-        <div class="hero-kanji" style="color: {c['hero_left']['color']};">{c['hero_left']['char']}</div>
-        <div class="hero-desc">{c['hero_left']['desc']}</div>
-      </div>
-      <div class="hero-card">
-        <div class="hero-kanji" style="color: {c['hero_right']['color']};">{c['hero_right']['char']}</div>
-        <div class="hero-desc">{c['hero_right']['desc']}</div>
-      </div>
-    </div>
+    {hero_html}
   </div>
 
   <div class="slide-footer">
