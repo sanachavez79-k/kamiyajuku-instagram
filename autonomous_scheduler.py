@@ -195,8 +195,19 @@ class KamiyajukuAutonomousScheduler:
         print("⏰ 待機時間が終了しました。翌日18:00の自動スケジュールに移行します。")
         return False
 
-    def publish_today_post(self, day_key: str):
-        """当日 18:00 にInstagramへ投稿"""
+    def publish_today_post(self, day_key: str, force_approved: bool = False):
+        """当日 18:00 にInstagramへ投稿（★完全手動承認制安全ロック適用）"""
+        if not force_approved:
+            print("⛔️ 【安全ロック作動】未承認・自動でのInstagram投稿は安全のため完全にブロックされています。")
+            print("投稿を実行するには、Telegramまたはスクリプトで明示的な承認（force_approved=True）が必要です。")
+            if self.telegram:
+                self.telegram.send_message(
+                    f"⚠️ <b>【自動投稿ブロック通知】</b>\n\n"
+                    f"自動投稿トリガーが検知されましたが、<b>未承認のため安全に投稿を停止</b>しました。\n"
+                    f"投稿を公開したい場合は、手動で承認・指示を行ってください。"
+                )
+            return {"status": "BLOCKED_BY_SAFETY_LOCK"}
+
         # 最新の未処理ボタン更新をすべてチェックして answerCallbackQuery
         self.poll_telegram_updates()
 
@@ -215,7 +226,7 @@ class KamiyajukuAutonomousScheduler:
         mark_post_as_published(day_key=day_key, row_id=row_id, theme_name=theme_name)
 
         self.telegram.send_message(
-            f"🎉 <b>【Instagram自動公開完了！】</b>\n\n"
+            f"🎉 <b>【Instagram公開完了！】</b>\n\n"
             f"本日（{day_key}）のカルーセル投稿が正常に公開されました！✨\n"
             f"📌 テーマ: <b>{theme_name}</b>\n"
             f"🔗 <b>Media ID</b>: <code>{media_id}</code>\n"

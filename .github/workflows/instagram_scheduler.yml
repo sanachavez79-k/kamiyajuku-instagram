@@ -1,13 +1,8 @@
-name: ⛩️ Kamiya Juku Instagram Automation
+name: ⛩️ Kamiya Juku Instagram Automation (MANUAL ONLY - AUTO DISABLED)
 
+# ★ 自動実行（schedule / cron）は完全停止・無効化されています。
+# 手動実行（workflow_dispatch）のみ可能です。
 on:
-  schedule:
-    # 毎週日曜日 09:00 CEST (UTC 07:00): 週次インサイト分析＆新規企画自動補充 (PDCA)
-    - cron: '0 7 * * 0'
-    # 前日 12:00 CEST (UTC 10:00): 日・火・木 にプレビュー配信
-    - cron: '0 10 * * 0,2,4'
-    # 当日 18:00 CEST (UTC 16:00): 月・水・金 に本番自動投稿
-    - cron: '0 16 * * 1,3,5'
   workflow_dispatch:
     inputs:
       action:
